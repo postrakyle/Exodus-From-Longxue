@@ -12,16 +12,12 @@ ZOOrkEngine::ZOOrkEngine(std::shared_ptr<Room> start) {
     player = Player::instance();
     player->setCurrentRoom(start.get());
 
-    // Show room description, exits, and inspectables
+    // Show only the room description and exits (no separate inspectable list).
     start->enter();
-    std::cout << "You notice:\n";
+    std::cout << "\nExits:\n";
     Room* cur = player->getCurrentRoom();
     for (const auto& kv : cur->getAllExits()) {
         std::cout << "  - " << kv.second->getTo()->getName() << "\n";
-    }
-    std::cout << "You can inspect:\n";
-    for (const auto& objName : cur->getLookableNames()) {
-        std::cout << "  - " << objName << "\n";
     }
 }
 
@@ -31,7 +27,7 @@ void ZOOrkEngine::setRoomMap(const std::map<std::string, std::shared_ptr<Room>>&
 
 void ZOOrkEngine::run() {
     while (!gameOver) {
-        std::cout << "> ";
+        std::cout << "\n> ";
         std::string input;
         std::getline(std::cin, input);
         std::vector<std::string> words = tokenizeString(input);
@@ -55,11 +51,17 @@ void ZOOrkEngine::run() {
         else if (command == "drop") {
             handleDropCommand(arguments);
         }
+        else if (command == "inventory" || command == "inv") {
+            handleInventoryCommand();
+        }
+        else if (command == "help") {
+            handleHelpCommand();
+        }
         else if (command == "quit") {
             handleQuitCommand(arguments);
         }
         else {
-            // If they type an object or room name, assume look
+            // Unrecognized input defaults to “look”
             handleLookCommand(words);
         }
     }
@@ -83,13 +85,9 @@ void ZOOrkEngine::handleGoCommand(const std::vector<std::string>& arguments) {
             player->setCurrentRoom(dest);
             dest->enter();
 
-            std::cout << "You notice:\n";
+            std::cout << "\nExits:\n";
             for (const auto& exitPair : dest->getAllExits()) {
                 std::cout << "  - " << exitPair.second->getTo()->getName() << "\n";
-            }
-            std::cout << "You can inspect:\n";
-            for (const auto& objName : dest->getLookableNames()) {
-                std::cout << "  - " << objName << "\n";
             }
             return;
         }
@@ -100,17 +98,15 @@ void ZOOrkEngine::handleGoCommand(const std::vector<std::string>& arguments) {
 void ZOOrkEngine::handleLookCommand(const std::vector<std::string>& arguments) {
     Room* currentRoom = player->getCurrentRoom();
     if (arguments.empty()) {
-        std::cout << currentRoom->getDescription() << "\n";
-        std::cout << "You notice:\n";
+        // Just “look”: Redisplay the room’s description and exits
+        std::cout << "\n" << currentRoom->getDescription() << "\n";
+        std::cout << "Exits:\n";
         for (const auto& kv : currentRoom->getAllExits()) {
             std::cout << "  - " << kv.second->getTo()->getName() << "\n";
         }
-        std::cout << "You can inspect:\n";
-        for (const auto& objName : currentRoom->getLookableNames()) {
-            std::cout << "  - " << objName << "\n";
-        }
     }
     else {
+        // “look <object>”
         std::string target;
         for (size_t i = 0; i < arguments.size(); ++i) {
             if (i > 0) target += " ";
@@ -139,28 +135,24 @@ void ZOOrkEngine::handleSearchCommand(const std::vector<std::string>& arguments)
     if (currentRoom->isSearchable(target)) {
         std::cout << currentRoom->getSearchDescription(target) << "\n";
 
-        // Spawn tangible items after search, if not already present
+        // Spawn tangible items after searching, if not already created:
         if (target == "rifle case") {
-            // Create Rifle
             auto rifle = std::make_shared<Item>("Rifle", "A standard assault rifle.", ItemType::Weapon);
             rifle->setDamage(40);
-            currentRoom->addLookable("rifle", "A sturdy assault rifle leans against the seat.");
+            currentRoom->addLookable("rifle",   "A sturdy assault rifle leans against the seat.");
             currentRoom->addSearchable("rifle", "You pick up the Rifle. Damage: 40.");
         }
         else if (target == "shotgun rack") {
-            // Create Shotgun
             auto shotgun = std::make_shared<Item>("Shotgun", "A worn but functional shotgun.", ItemType::Weapon);
             shotgun->setDamage(60);
-            currentRoom->addLookable("shotgun", "A shotgun rests atop a broken chair.");
+            currentRoom->addLookable("shotgun",   "A shotgun rests atop a broken chair.");
             currentRoom->addSearchable("shotgun", "You pick up the Shotgun. Damage: 60.");
         }
         else if (target == "tv rack") {
-            // Create Lab Keycard
-            auto keycard = std::make_shared<Item>("Lab Keycard", "A Level‐2 lab keycard.", ItemType::Keycard);
-            currentRoom->addLookable("lab keycard", "A Level‐2 lab keycard glints on the counter.");
-            currentRoom->addSearchable("lab keycard", "You pick up the Lab Keycard. Can open the lab.");
+            auto keycard = std::make_shared<Item>("Lab Keycard", "A Level-2 lab keycard.", ItemType::Keycard);
+            currentRoom->addLookable("lab keycard",   "A Level-2 lab keycard glints on the counter.");
+            currentRoom->addSearchable("lab keycard","You pick up the Lab Keycard. Can open the lab.");
         }
-        // (Other lore‐only searches already exist from WorldManager)
     }
     else {
         std::cout << "You find nothing interesting when searching \"" << target << "\".\n";
@@ -180,7 +172,6 @@ void ZOOrkEngine::handleTakeCommand(const std::vector<std::string>& arguments) {
 
     Room* currentRoom = player->getCurrentRoom();
     if (currentRoom->isLookable(target)) {
-        // Map object→proper Item name
         std::string properName;
         ItemType type;
 
@@ -200,14 +191,13 @@ void ZOOrkEngine::handleTakeCommand(const std::vector<std::string>& arguments) {
 
         auto newItem = std::make_shared<Item>(properName, "", type);
         if (type == ItemType::Weapon) {
-            if (properName == "Rifle") newItem->setDamage(40);
+            if (properName == "Rifle")   newItem->setDamage(40);
             else if (properName == "Shotgun") newItem->setDamage(60);
         }
 
         if (player->pickUpItem(newItem)) {
             std::cout << "Picked up: " << properName << "\n";
-            // Remove from room’s lookables/searchables
-            // (Optional: implement removeLookable/removeSearchable if desired)
+            // Optionally remove from room’s look/search lists here
         }
     }
     else {
@@ -231,6 +221,30 @@ void ZOOrkEngine::handleDropCommand(const std::vector<std::string>& arguments) {
         currentRoom->addLookable(target, "A " + target + " lies here on the ground.");
         currentRoom->addSearchable(target, "You see the " + target + " sitting on the floor.");
     }
+}
+
+void ZOOrkEngine::handleInventoryCommand() {
+    auto contents = player->listInventory();
+    if (contents.empty()) {
+        std::cout << "Your inventory is empty.\n";
+    } else {
+        std::cout << "You are carrying:\n";
+        for (const auto &itemName : contents) {
+            std::cout << "  - " << itemName << "\n";
+        }
+    }
+}
+
+void ZOOrkEngine::handleHelpCommand() {
+    std::cout << "Available commands:\n";
+    std::cout << "  go <room>            - Move to a connected room (e.g. go Theater)\n";
+    std::cout << "  look [<object>]      - Look around (room description) or at a specific object\n";
+    std::cout << "  search <object>      - Search an object (may reveal items)\n";
+    std::cout << "  take <item>          - Pick up an item after you’ve spawned it\n";
+    std::cout << "  drop <item>          - Drop an item from your inventory\n";
+    std::cout << "  inventory (inv)      - List items you are carrying\n";
+    std::cout << "  help                 - Show this help text\n";
+    std::cout << "  quit                 - Exit the game\n";
 }
 
 void ZOOrkEngine::handleQuitCommand(const std::vector<std::string>&) {

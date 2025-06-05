@@ -6,6 +6,7 @@
 #include "Inventory.h"
 #include <memory>
 #include <string>
+#include <vector>   // <-- for std::vector
 
 class Item;
 
@@ -37,6 +38,11 @@ public:
     }
     auto getEquippedWeapons() const {
         return inventory.getEquippedWeapons();
+    }
+
+    // New: list all item names in inventory
+    std::vector<std::string> listInventory() const {
+        return inventory.listItemNames();
     }
 
     // Health fields

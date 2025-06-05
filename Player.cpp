@@ -38,3 +38,4 @@ void Player::useMedkitHeal(int amount) {
     legsHealth += amount / 2;
     std::cout << "You use the medkit and restore health across your body.\n";
 }
+      
