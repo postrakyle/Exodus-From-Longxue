@@ -1,5 +1,4 @@
-//NullRoom.cpp
-
+// --- NullRoom.cpp ---
 #include "NullCommand.h"
 #include "NullRoom.h"
 

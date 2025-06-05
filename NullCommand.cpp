@@ -1,5 +1,4 @@
-//NullCommand.cpp
-
+// --- NullCommand.cpp ---
 #include "NullCommand.h"
 
 void NullCommand::execute() {

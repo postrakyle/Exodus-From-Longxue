@@ -1,5 +1,4 @@
-//PassageDefualtEnterCommand.cpp
-
+// --- PassageDefaultEnterCommand.cpp ---
 #include "Passage.h"
 #include "PassageDefaultEnterCommand.h"
 

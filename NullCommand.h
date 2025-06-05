@@ -1,5 +1,4 @@
-//NullCommand.h
-
+// --- NullCommand.h ---
 #ifndef ZOORK_NULLCOMMAND_H
 #define ZOORK_NULLCOMMAND_H
 
@@ -9,9 +8,7 @@
 class NullCommand : public Command {
 public:
     NullCommand() : Command(nullptr) {}
-
     void execute() override;
 };
-
 
 #endif //ZOORK_NULLCOMMAND_H

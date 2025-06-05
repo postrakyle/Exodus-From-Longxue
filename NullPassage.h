@@ -1,5 +1,4 @@
-//NullPassage.h
-
+// --- NullPassage.h ---
 #ifndef ZOORK_NULLPASSAGE_H
 #define ZOORK_NULLPASSAGE_H
 
@@ -9,6 +8,5 @@ class NullPassage : public Passage {
 public:
     explicit NullPassage(Room*);
 };
-
 
 #endif //ZOORK_NULLPASSAGE_H
