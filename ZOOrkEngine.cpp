@@ -1,6 +1,6 @@
-// --- ZOOrkEngine.cpp ---
 #include "ZOOrkEngine.h"
 #include "Passage.h"
+#include "Room.h"
 #include <algorithm>
 #include <sstream>
 #include <limits>
@@ -9,11 +9,19 @@
 ZOOrkEngine::ZOOrkEngine(std::shared_ptr<Room> start) {
     player = Player::instance();
     player->setCurrentRoom(start.get());
-    // When the game starts, show the description and available locations
+
+    // Show the room’s description and list what you can either move to or inspect
     start->enter();
-    std::cout << "You can go to:\n";
-    for (const auto& kv : start->getAllExits()) {
+
+    std::cout << "You notice:\n";
+    Room* cur = player->getCurrentRoom();
+    for (const auto& kv : cur->getAllExits()) {
         std::cout << "  - " << kv.second->getTo()->getName() << "\n";
+    }
+
+    std::cout << "You can inspect:\n";
+    for (const auto& objName : cur->getLookableNames()) {
+        std::cout << "  - " << objName << "\n";
     }
 }
 
@@ -34,81 +42,131 @@ void ZOOrkEngine::run() {
 
         if (command == "go" || command == "goto" || command == "move") {
             handleGoCommand(arguments);
-        } else if ((command == "look") || (command == "inspect")) {
+        }
+        else if ((command == "look") || (command == "inspect")) {
             handleLookCommand(arguments);
-        } else if ((command == "take") || (command == "get")) {
+        }
+        else if (command == "search") {
+            handleSearchCommand(arguments);
+        }
+        else if ((command == "take") || (command == "get")) {
             handleTakeCommand(arguments);
-        } else if (command == "drop") {
+        }
+        else if (command == "drop") {
             handleDropCommand(arguments);
-        } else if (command == "quit") {
+        }
+        else if (command == "quit") {
             handleQuitCommand(arguments);
-        } else {
-            // If they just type a location name without "go"
-            handleGoCommand(words);
+        }
+        else {
+            // If they just type an object or room name, try look as a fallback
+            handleLookCommand(words);
         }
     }
 }
 
-void ZOOrkEngine::handleGoCommand(std::vector<std::string> arguments) {
+void ZOOrkEngine::handleGoCommand(const std::vector<std::string>& arguments) {
     if (arguments.empty()) return;
 
-    // Join multi-word arguments for room names
-    std::string arg;
+    // Combine multi-word target (e.g., "red car", "Subway Station")
+    std::string target;
     for (size_t i = 0; i < arguments.size(); ++i) {
-        if (i > 0) arg += " ";
-        arg += arguments[i];
+        if (i > 0) target += " ";
+        target += arguments[i];
     }
 
     Room* currentRoom = player->getCurrentRoom();
+    std::string targetLower = makeLowercase(target);
 
-    // Try matching any exit by destination name or by exit label
+    // 1) Check exits by destination name
     for (const auto& kv : currentRoom->getAllExits()) {
-        std::string exitLabel = kv.first;                         // e.g. "to zoo"
-        Room* dest = kv.second->getTo();                          // pointer to the Room
+        Room* dest = kv.second->getTo();
+        std::string destNameLower = makeLowercase(dest->getName());
 
-        // Normalize both to lowercase for comparison
-        std::string lowerArg      = makeLowercase(arg);
-        std::string lowerDestName = makeLowercase(dest->getName());
-        std::string lowerExitLbl  = makeLowercase(exitLabel);
-
-        // Matches if player typed "zoo", "to zoo", or the exact exit label
-        if (lowerArg == lowerDestName
-            || lowerArg == lowerExitLbl
-            || lowerArg == "to " + lowerDestName) 
-        {
+        if (destNameLower == targetLower) {
+            // Move player
             player->setCurrentRoom(dest);
             dest->enter();
 
-            // After moving, list the available locations
-            std::cout << "You can go to:\n";
-            for (const auto& nextKv : dest->getAllExits()) {
-                std::cout << "  - " << nextKv.second->getTo()->getName() << "\n";
+            // Show next possible moves
+            std::cout << "You notice:\n";
+            for (const auto& exitPair : dest->getAllExits()) {
+                std::cout << "  - " << exitPair.second->getTo()->getName() << "\n";
+            }
+
+            std::cout << "You can inspect:\n";
+            for (const auto& objName : dest->getLookableNames()) {
+                std::cout << "  - " << objName << "\n";
             }
             return;
         }
     }
 
-    std::cout << "You can't go there from here.\n";
+    std::cout << "You can't go to \"" << target << "\" from here.\n";
 }
 
-void ZOOrkEngine::handleLookCommand(std::vector<std::string>) {
+void ZOOrkEngine::handleLookCommand(const std::vector<std::string>& arguments) {
     Room* currentRoom = player->getCurrentRoom();
-    std::cout << currentRoom->getDescription() << "\n";
-    std::cout << "You can go to:\n";
-    for (const auto& kv : currentRoom->getAllExits()) {
-        std::cout << "  - " << kv.second->getTo()->getName() << "\n";
+
+    if (arguments.empty()) {
+        // Just "look" → show room description + what you can inspect
+        std::cout << currentRoom->getDescription() << "\n";
+
+        std::cout << "You notice:\n";
+        for (const auto& kv : currentRoom->getAllExits()) {
+            std::cout << "  - " << kv.second->getTo()->getName() << "\n";
+        }
+
+        std::cout << "You can inspect:\n";
+        for (const auto& objName : currentRoom->getLookableNames()) {
+            std::cout << "  - " << objName << "\n";
+        }
+    }
+    else {
+        // "look <object>"
+        std::string target;
+        for (size_t i = 0; i < arguments.size(); ++i) {
+            if (i > 0) target += " ";
+            target += arguments[i];
+        }
+
+        if (currentRoom->isLookable(target)) {
+            std::cout << currentRoom->getLookDescription(target) << "\n";
+        } else {
+            std::cout << "There's no \"" << target << "\" to look at here.\n";
+        }
     }
 }
 
-void ZOOrkEngine::handleTakeCommand(std::vector<std::string>) {
+void ZOOrkEngine::handleSearchCommand(const std::vector<std::string>& arguments) {
+    if (arguments.empty()) {
+        std::cout << "Search what?\n";
+        return;
+    }
+
+    Room* currentRoom = player->getCurrentRoom();
+    std::string target;
+    for (size_t i = 0; i < arguments.size(); ++i) {
+        if (i > 0) target += " ";
+        target += arguments[i];
+    }
+
+    if (currentRoom->isSearchable(target)) {
+        std::cout << currentRoom->getSearchDescription(target) << "\n";
+    } else {
+        std::cout << "You find nothing interesting when searching \"" << target << "\".\n";
+    }
+}
+
+void ZOOrkEngine::handleTakeCommand(const std::vector<std::string>&) {
     std::cout << "This functionality is not yet enabled.\n";
 }
 
-void ZOOrkEngine::handleDropCommand(std::vector<std::string>) {
+void ZOOrkEngine::handleDropCommand(const std::vector<std::string>&) {
     std::cout << "This functionality is not yet enabled.\n";
 }
 
-void ZOOrkEngine::handleQuitCommand(std::vector<std::string>) {
+void ZOOrkEngine::handleQuitCommand(const std::vector<std::string>&) {
     std::string input;
     std::cout << "Are you sure you want to QUIT? (y/n)\n> ";
     std::cin >> input;
