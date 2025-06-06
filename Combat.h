@@ -128,6 +128,9 @@ public:
 
     bool attemptFlee() override;
     void displayStatus() const;
+
+    // Flag to handle "just took cover" messaging
+    bool justTookCover;
 };
 
 //

@@ -28,13 +28,13 @@ void Combatant::initBodyParts(bool isScav) {
     if (isScav) {
         bodyParts[BodyPartType::Head]   = BodyPart(50);
         bodyParts[BodyPartType::Thorax] = BodyPart(150);
-        bodyParts[BodyPartType::Arm]    = BodyPart(100);
-        bodyParts[BodyPartType::Leg]    = BodyPart(100);
+        bodyParts[BodyPartType::Arm]    = BodyPart(200);
+        bodyParts[BodyPartType::Leg]    = BodyPart(200);
     } else {
         bodyParts[BodyPartType::Head]   = BodyPart(50);
         bodyParts[BodyPartType::Thorax] = BodyPart(200);
-        bodyParts[BodyPartType::Arm]    = BodyPart(150);
-        bodyParts[BodyPartType::Leg]    = BodyPart(150);
+        bodyParts[BodyPartType::Arm]    = BodyPart(200);
+        bodyParts[BodyPartType::Leg]    = BodyPart(200);
     }
 }
 
@@ -105,13 +105,62 @@ bool Combatant::shootAt(std::shared_ptr<Combatant> target, BodyPartType targetPa
         return false; // out of ammo
     }
 
+    bool attackerIsPlayer = isPlayer;
+    // Calculate raw hit chance
     double hitChance = calculateHitChance(targetPart);
     std::uniform_real_distribution<double> uni(0.0, 1.0);
     double roll = uni(rng);
 
-    // Simplified names for printing
-    std::string attackerName = isPlayer ? "You" : name;
+    std::string attackerName = attackerIsPlayer ? "You" : name;
     std::string targetName   = target->isPlayer ? "you" : target->getName();
+    bool targetWasInCover    = target->inCover;
+
+    // If attacker is enemy and you are in cover:
+    if (!attackerIsPlayer && target->inCover) {
+        // Enemy still rolls to see if shot would have hit
+        if (roll <= hitChance) {
+            // 30% chance that this hitting shot breaks cover and hits you
+            std::uniform_real_distribution<double> breaker(0.0, 1.0);
+            if (breaker(rng) < 0.3) {
+                // Break cover and apply damage
+                target->breakCover();
+                int damage = weapon->getDamage();
+                target->applyDamage(targetPart, damage);
+                std::cout << name << " shoots a bullet hitting your "
+                          << (targetPart == BodyPartType::Head    ? "head"
+                              : targetPart == BodyPartType::Thorax ? "thorax"
+                              : targetPart == BodyPartType::Arm    ? "arm"
+                                                                    : "leg")
+                          << " and breaking your cover!\n";
+
+                // Check brutal death on any zeroed part
+                if (target->bodyParts.at(targetPart).hp == 0) {
+                    // Force full death
+                    target->bodyParts[BodyPartType::Head].hp = 0;
+                    target->bodyParts[BodyPartType::Thorax].hp = 0;
+
+                    if (target->isPlayer) {
+                        // Player death description (not used for enemies)
+                    }
+                }
+            } else {
+                std::cout << name << " fires at you but you remain safely behind cover.\n";
+            }
+        } else {
+            std::cout << name << " fires at you and misses completely.\n";
+        }
+        return true;
+    }
+
+    // Normal hit/miss flow (or player shooting)
+    bool playerJustCoveredHit = false;
+    if (roll <= hitChance && target->isPlayer) {
+        PlayerCombatant* pc = static_cast<PlayerCombatant*>(target.get());
+        if (pc->justTookCover) {
+            playerJustCoveredHit = true;
+            pc->justTookCover = false;
+        }
+    }
 
     if (roll <= hitChance) {
         int damage = weapon->getDamage();
@@ -120,31 +169,77 @@ bool Combatant::shootAt(std::shared_ptr<Combatant> target, BodyPartType targetPa
         }
         target->applyDamage(targetPart, damage);
 
-        if (target->inCover) {
-            // 30% chance to break cover when hit
-            std::uniform_real_distribution<double> breaker(0.0, 1.0);
-            if (breaker(rng) < 0.3) {
-                target->breakCover();
-                std::cout << targetName << "'s cover is broken!\n";
+        if (playerJustCoveredHit) {
+            std::cout << "You run to cover but get hit in the "
+                      << (targetPart == BodyPartType::Head    ? "head"
+                          : targetPart == BodyPartType::Thorax ? "thorax"
+                          : targetPart == BodyPartType::Arm    ? "arm"
+                                                                : "leg")
+                      << " as you get behind cover.\n";
+        } else {
+            if (target->isPlayer) {
+                std::cout << attackerName << " hits you in the "
+                          << (targetPart == BodyPartType::Head    ? "head"
+                              : targetPart == BodyPartType::Thorax ? "thorax"
+                              : targetPart == BodyPartType::Arm    ? "arm"
+                                                                    : "leg")
+                          << ".\n";
+            } else {
+                std::cout << attackerName << " hits " << targetName << " in the "
+                          << (targetPart == BodyPartType::Head    ? "head"
+                              : targetPart == BodyPartType::Thorax ? "thorax"
+                              : targetPart == BodyPartType::Arm    ? "arm"
+                                                                    : "leg")
+                          << ".\n";
+
+                // If you hit an enemy while behind cover, force a guaranteed 1‐turn flank
+                if (attackerIsPlayer && inCover) {
+                    Enemy* ePtr = static_cast<Enemy*>(target.get());
+                    // Only flank if enemy's leg is still functional
+                    if (!ePtr->bodyParts.at(BodyPartType::Leg).isBlackedOut()) {
+                        ePtr->flanking = true;
+                        ePtr->flankCountdown = 1;  // one move to break cover
+                    }
+                }
+
+                // Brutal death if that part hit zero
+                if (target->bodyParts.at(targetPart).hp == 0) {
+                    // Force full death
+                    target->bodyParts[BodyPartType::Head].hp = 0;
+                    target->bodyParts[BodyPartType::Thorax].hp = 0;
+
+                    // Print a long, descriptive death message:
+                    if (targetPart == BodyPartType::Head) {
+                        std::cout << targetName << " reels back as the bullet explodes through their skull, "
+                                     "blood spurting in a crimson arc. Their body goes limp, "
+                                     "eyes staring blankly as they collapse, spine folding unnaturally. "
+                                     "The crack of bone echoes, and a faint gurgle of blood spills from "
+                                     "their parted lips before silence descends.\n";
+                    } else if (targetPart == BodyPartType::Thorax) {
+                        std::cout << targetName << " clutches at their chest as the round tears through lungs. "
+                                     "They gasp desperately, froth bubbling at their mouth, crimson spray "
+                                     "misting in the air. Each breath becomes a ragged gasp; ribs fracture "
+                                     "with sickening cracks. They slump to a kneel, one hand pressed against "
+                                     "the smoking wound, eyes rolling back as they cough up dark blood, "
+                                     "choking in their final moments.\n";
+                    } else if (targetPart == BodyPartType::Arm) {
+                        std::cout << targetName << " howls as the bullet shreds their arm, bone "
+                                     "splintering, muscle and sinew rent. They clutch the mangled limb, "
+                                     "blood pouring in rivers down their side. Their knees buckle, body "
+                                     "seizing in shock; they scream, clutching the stump, white with pain, "
+                                     "tears mixing with sweat as they fall to the ground, arm twitching spasmodically.\n";
+                    } else if (targetPart == BodyPartType::Leg) {
+                        std::cout << targetName << " collapses instantly, leg severed by the round. "
+                                     "They roar in agony, clawing at the stump as hot blood soaks the dirt. "
+                                     "Their other foot scrabbles in a futile attempt to stand; they rock "
+                                     "back and forth, screaming, bile rising as they choke on each breath. "
+                                     "Their torso trembles violently, eyes widening as they slip into unconsciousness.\n";
+                    }
+                }
             }
         }
-
-        // Print only hit location
-        std::string partStr = (targetPart == BodyPartType::Head    ? "head"
-                            : targetPart == BodyPartType::Thorax  ? "thorax"
-                            : targetPart == BodyPartType::Arm     ? "arm"
-                                                                    : "leg");
-        std::cout << attackerName << " hit " << targetName << " in the " << partStr << ".\n";
     } else {
         std::cout << attackerName << " fired at " << targetName << " and missed.\n";
-        if (target->inCover) {
-            // 30% chance to break cover on a miss
-            std::uniform_real_distribution<double> breaker(0.0, 1.0);
-            if (breaker(rng) < 0.3) {
-                target->breakCover();
-                std::cout << targetName << "'s cover is broken by stray shots!\n";
-            }
-        }
     }
     return true;
 }
@@ -227,30 +322,30 @@ void Enemy::decideAction(std::shared_ptr<Combatant> player) {
 
     // If currently flanking, decrement countdown
     if (flanking) {
-        if (--flankCountdown > 0) {
+        flankCountdown--;
+        if (flankCountdown > 0) {
             std::cout << name << " is flanking...\n";
             return;
         } else {
             flanking = false;
             std::cout << name << " completes the flank maneuver and breaks your cover!\n";
             player->breakCover();
-            // After breaking cover, enemy’s turn ends here
             return;
         }
     }
 
-    // Only attempt to flank if you (the player) are in cover
+    // If you are in cover, 30% chance to start flanking this turn
     if (player->inCover) {
         std::uniform_real_distribution<double> uni(0.0, 1.0);
-        if (uni(rng) < 0.3) {  // 30% chance to start flanking
+        if (uni(rng) < 0.3) {
             flanking = true;
-            flankCountdown = 2;
+            flankCountdown = 1;  // one move to break cover
             std::cout << name << " is attempting to flank you!\n";
             return;
         }
     }
 
-    // Otherwise, proceed to shoot normally
+    // Otherwise, proceed to shoot
     if (weapon->needsReload() || weapon->getAmmo() == 0) {
         reloadWeapon();
         return;
@@ -274,7 +369,7 @@ void Enemy::decideAction(std::shared_ptr<Combatant> player) {
 //
 
 PlayerCombatant::PlayerCombatant(const std::string& n)
-    : Combatant(n, true)
+    : Combatant(n, true), justTookCover(false)
 {
     initBodyParts(false);
     equipWeapon(WeaponFactory::createWeapon(WeaponType::Pistol));
@@ -328,10 +423,8 @@ void CombatManager::displayCombatants(
     PlayerCombatant& player,
     const std::vector<std::shared_ptr<Enemy>>& enemies
 ) const {
-    // Show player status
     player.displayStatus();
 
-    // Show all enemies with their Head/Thorax/Arm/Leg HP
     std::cout << "\n=== Enemies ===\n";
     for (size_t i = 0; i < enemies.size(); ++i) {
         auto& e = enemies[i];
@@ -353,7 +446,7 @@ void CombatManager::displayCombatants(
                       << "A: "    << armHp    << "/" << armMax    << "  |  "
                       << "L: "    << legHp    << "/" << legMax    << "\n";
 
-            // Calculate actual hit chances using calculateHitChance
+            // Compute player’s actual hit-chances (cover considered)
             double dHead = player.calculateHitChance(BodyPartType::Head);
             double dThor = player.calculateHitChance(BodyPartType::Thorax);
             double dArm  = player.calculateHitChance(BodyPartType::Arm);
@@ -378,7 +471,6 @@ bool CombatManager::engage(
     PlayerCombatant& player,
     std::vector<std::shared_ptr<Enemy>>& enemies
 ) {
-    // Create a non‐owning shared_ptr to the real player so enemies can damage it directly
     std::shared_ptr<Combatant> pPtr(&player, [](Combatant*) {});
     this->playerPtr = pPtr;
 
@@ -386,13 +478,10 @@ bool CombatManager::engage(
     player.inCover = false;
     player.distance = currentDistance;
 
-    // At the very start, show the initial UI:
     displayCombatants(player, enemies);
 
     while (true) {
-        // 1) Player’s turn
         if (!playerTurn(player, enemies)) {
-            // If player fled or died, just return false/true and let caller print once
             return !player.isDead();
         }
         if (allEnemiesDead(enemies)) {
@@ -400,9 +489,7 @@ bool CombatManager::engage(
             return true;
         }
 
-        // 2) Enemy’s turn
         if (!enemiesTurn(player, enemies)) {
-            // Player died; do NOT print “You have been killed…” here.
             return false;
         }
         if (allEnemiesDead(enemies)) {
@@ -410,7 +497,6 @@ bool CombatManager::engage(
             return true;
         }
 
-        // 3) After both sides acted, show updated UI
         displayCombatants(player, enemies);
     }
 }
@@ -429,7 +515,6 @@ bool CombatManager::enemiesTurn(
 ) {
     for (auto& e : enemies) {
         if (e->isDead()) continue;
-        e->tick();
         e->decideAction(this->playerPtr);
         if (player.isDead()) {
             return false;
@@ -442,6 +527,9 @@ bool CombatManager::promptPlayerAction(
     PlayerCombatant& player,
     std::vector<std::shared_ptr<Enemy>>& enemies
 ) {
+    // Clear the "justTookCover" flag unless we explicitly go into the Take Cover branch below
+    player.justTookCover = false;
+
     std::cout << "\nChoose an action:\n";
     std::cout << " 1) Move Closer   2) Move Further   3) Take Cover\n";
     std::cout << " 4) Shoot         5) Reload         6) Flee\n";
@@ -485,7 +573,8 @@ bool CombatManager::promptPlayerAction(
     if (cmd == "3" || cmd == "take cover") {
         if (!player.isInCover()) {
             player.takeCover();
-            std::cout << "You drop behind cover. You are now Behind Cover.\n";
+            player.justTookCover = true;
+            std::cout << "You run to cover. You are now Behind Cover.\n";
         } else {
             std::cout << "You are already behind cover.\n";
         }
