@@ -1,4 +1,5 @@
-//ZOOrkEngine.cpp
+// File: ZOOrkEngine.cpp
+
 #include "ZOOrkEngine.h"
 #include "Passage.h"
 #include "Room.h"
@@ -15,7 +16,7 @@ ZOOrkEngine::ZOOrkEngine(std::shared_ptr<Room> start) {
     player = Player::instance();
     player->setCurrentRoom(start.get());
 
-    // Show room description and exits
+    // Show initial room description and exits
     start->enter();
     std::cout << "\nExits:\n";
     Room* cur = player->getCurrentRoom();
@@ -127,6 +128,7 @@ void ZOOrkEngine::handleGoCommand(const std::vector<std::string>& arguments) {
                     exit(0);
                 } else {
                     std::cout << "\nYou emerge victorious from the abandoned cages. The scavenger lies still.\n";
+
                     // Drop a “Pistol” item into the Zoo for the player to pick up
                     Room* zooRoom = dest;
                     auto pistolItem = std::make_shared<Item>(
@@ -136,6 +138,17 @@ void ZOOrkEngine::handleGoCommand(const std::vector<std::string>& arguments) {
                     );
                     zooRoom->addLookable("dropped pistol", "A scavenger’s pistol lies on the ground.");
                     zooRoom->addSearchable("dropped pistol", "You pick up the dropped Pistol.");
+
+                    // ──────────────────────────────────────────────────────────
+                    // NOW: re‐introduce the room’s description & exits
+                    std::cout << "\nAs the echoes of gunfire fade, you find yourself back in "
+                              << dest->getName() << ".\n\n";
+                    dest->enter();
+                    std::cout << "\nExits:\n";
+                    for (const auto& kv2 : dest->getAllExits()) {
+                        std::cout << "  - " << kv2.second->getTo()->getName() << "\n";
+                    }
+                    // ──────────────────────────────────────────────────────────
                 }
             }
 
