@@ -76,8 +76,9 @@ double Combatant::calculateHitChance(BodyPartType targetPart) const {
     }
     acc *= partMod;
 
-    if (inCover) {
-        acc *= 0.5;
+    // If the shooter is the player and they are in cover, reduce accuracy by 25%
+    if (isPlayer && inCover) {
+        acc *= 0.75;
     }
 
     if (acc < 0.0) acc = 0.0;
@@ -109,9 +110,11 @@ bool Combatant::shootAt(std::shared_ptr<Combatant> target, BodyPartType targetPa
         target->applyDamage(targetPart, damage);
 
         if (target->inCover) {
+            // 50% chance to break cover when hit
             std::uniform_real_distribution<double> breaker(0.0, 1.0);
             if (breaker(rng) < 0.5) {
                 target->breakCover();
+                std::cout << targetName << "'s cover is broken!\n";
             }
         }
 
@@ -124,10 +127,11 @@ bool Combatant::shootAt(std::shared_ptr<Combatant> target, BodyPartType targetPa
     } else {
         std::cout << attackerName << " fired at " << targetName << " and missed.\n";
         if (target->inCover) {
+            // 50% chance to break cover on a miss
             std::uniform_real_distribution<double> breaker(0.0, 1.0);
-            if (breaker(rng) < 0.3) {
+            if (breaker(rng) < 0.5) {
                 target->breakCover();
-                std::cout << targetName << "'s cover is destroyed by stray shots!\n";
+                std::cout << targetName << "'s cover is broken by stray shots!\n";
             }
         }
     }
@@ -203,11 +207,39 @@ Enemy::Enemy(EnemyType t)
     }
 
     inCover = false;
+    flanking = false;
+    flankCountdown = 0;
 }
 
 void Enemy::decideAction(std::shared_ptr<Combatant> player) {
     if (isDead()) return;
 
+    // If currently flanking, decrement countdown
+    if (flanking) {
+        if (--flankCountdown > 0) {
+            std::cout << name << " is flanking...\n";
+            return;
+        } else {
+            flanking = false;
+            std::cout << name << " completes the flank maneuver and breaks your cover!\n";
+            player->breakCover();
+            // After breaking cover, enemy’s turn ends here
+            return;
+        }
+    }
+
+    // Only attempt to flank if you (the player) are in cover
+    if (player->inCover) {
+        std::uniform_real_distribution<double> uni(0.0, 1.0);
+        if (uni(rng) < 0.4) {
+            flanking = true;
+            flankCountdown = 2;
+            std::cout << name << " is attempting to flank you!\n";
+            return;
+        }
+    }
+
+    // Otherwise, proceed to shoot normally
     if (weapon->needsReload() || weapon->getAmmo() == 0) {
         reloadWeapon();
         return;
