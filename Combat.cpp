@@ -3,6 +3,7 @@
 #include "Combat.h"
 #include <sstream>    // for std::istringstream
 #include <iostream>   // for std::cout
+#include <cmath>      // for std::ceil
 
 // Initialize the RNG once
 std::mt19937 Combatant::rng(std::random_device{}());
@@ -110,9 +111,9 @@ bool Combatant::shootAt(std::shared_ptr<Combatant> target, BodyPartType targetPa
         target->applyDamage(targetPart, damage);
 
         if (target->inCover) {
-            // 50% chance to break cover when hit
+            // 30% chance to break cover when hit
             std::uniform_real_distribution<double> breaker(0.0, 1.0);
-            if (breaker(rng) < 0.5) {
+            if (breaker(rng) < 0.3) {
                 target->breakCover();
                 std::cout << targetName << "'s cover is broken!\n";
             }
@@ -127,9 +128,9 @@ bool Combatant::shootAt(std::shared_ptr<Combatant> target, BodyPartType targetPa
     } else {
         std::cout << attackerName << " fired at " << targetName << " and missed.\n";
         if (target->inCover) {
-            // 50% chance to break cover on a miss
+            // 30% chance to break cover on a miss
             std::uniform_real_distribution<double> breaker(0.0, 1.0);
-            if (breaker(rng) < 0.5) {
+            if (breaker(rng) < 0.3) {
                 target->breakCover();
                 std::cout << targetName << "'s cover is broken by stray shots!\n";
             }
@@ -231,7 +232,7 @@ void Enemy::decideAction(std::shared_ptr<Combatant> player) {
     // Only attempt to flank if you (the player) are in cover
     if (player->inCover) {
         std::uniform_real_distribution<double> uni(0.0, 1.0);
-        if (uni(rng) < 0.4) {
+        if (uni(rng) < 0.3) {  // 30% chance to start flanking
             flanking = true;
             flankCountdown = 2;
             std::cout << name << " is attempting to flank you!\n";
@@ -343,29 +344,42 @@ void CombatManager::displayCombatants(
                       << "L: "    << legHp    << "/" << legMax    << "\n";
 
             // VATS-style fixed probabilities based on distance
-            int pctHead, pctThor, pctArm, pctLeg;
+            int baseHead, baseThor, baseArm, baseLeg;
             switch (player.distance) {
                 case Distance::Far:
-                    pctHead = 15;
-                    pctThor = 25;
-                    pctArm  = 20;
-                    pctLeg  = 20;
+                    baseHead = 15;
+                    baseThor = 25;
+                    baseArm  = 20;
+                    baseLeg  = 20;
                     break;
                 case Distance::Medium:
-                    pctHead = 40;
-                    pctThor = 60;
-                    pctArm  = 50;
-                    pctLeg  = 50;
+                    baseHead = 40;
+                    baseThor = 60;
+                    baseArm  = 50;
+                    baseLeg  = 50;
                     break;
                 case Distance::Close:
-                    pctHead = 70;
-                    pctThor = 90;
-                    pctArm  = 80;
-                    pctLeg  = 80;
+                    baseHead = 70;
+                    baseThor = 90;
+                    baseArm  = 80;
+                    baseLeg  = 80;
                     break;
                 default:
-                    pctHead = pctThor = pctArm = pctLeg = 0;
+                    baseHead = baseThor = baseArm = baseLeg = 0;
             }
+
+            // If player is in cover, reduce each by 25% and round up
+            auto adjustForCover = [&](int basePct) {
+                if (player.inCover) {
+                    return static_cast<int>(std::ceil(basePct * 0.75));
+                }
+                return basePct;
+            };
+
+            int pctHead = adjustForCover(baseHead);
+            int pctThor = adjustForCover(baseThor);
+            int pctArm  = adjustForCover(baseArm);
+            int pctLeg  = adjustForCover(baseLeg);
 
             std::cout << "    Probabilities -> "
                       << "H: "  << pctHead << "%  |  "
