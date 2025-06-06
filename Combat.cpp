@@ -59,32 +59,42 @@ void Combatant::applyDamage(BodyPartType part, int dmg) {
 }
 
 double Combatant::calculateHitChance(BodyPartType targetPart) const {
-    if (!weapon) return 0.0;
-
-    double acc = weapon->getAccuracy();
-    if (weapon->getType() == WeaponType::Rifle && weapon->isScoped()) {
-        acc += 0.40;
+    // Determine base percentage from distance and target part:
+    int basePct = 0;
+    switch (distance) {
+        case Distance::Far:
+            switch (targetPart) {
+                case BodyPartType::Head:   basePct = 15; break;
+                case BodyPartType::Thorax: basePct = 25; break;
+                case BodyPartType::Arm:    basePct = 20; break;
+                case BodyPartType::Leg:    basePct = 20; break;
+            }
+            break;
+        case Distance::Medium:
+            switch (targetPart) {
+                case BodyPartType::Head:   basePct = 40; break;
+                case BodyPartType::Thorax: basePct = 60; break;
+                case BodyPartType::Arm:    basePct = 50; break;
+                case BodyPartType::Leg:    basePct = 50; break;
+            }
+            break;
+        case Distance::Close:
+            switch (targetPart) {
+                case BodyPartType::Head:   basePct = 70; break;
+                case BodyPartType::Thorax: basePct = 90; break;
+                case BodyPartType::Arm:    basePct = 80; break;
+                case BodyPartType::Leg:    basePct = 80; break;
+            }
+            break;
     }
-    static constexpr double distMods[3] = {1.0, 0.7, 0.4};
-    acc *= distMods[static_cast<int>(distance)];
 
-    double partMod = 1.0;
-    switch (targetPart) {
-        case BodyPartType::Head:   partMod = 0.30; break;
-        case BodyPartType::Thorax: partMod = 0.80; break;
-        case BodyPartType::Arm:    partMod = 0.60; break;
-        case BodyPartType::Leg:    partMod = 0.60; break;
-    }
-    acc *= partMod;
-
-    // If the shooter is the player and they are in cover, reduce accuracy by 25%
+    // If shooter is the player and is in cover, reduce by 25% (round up)
+    int finalPct = basePct;
     if (isPlayer && inCover) {
-        acc *= 0.75;
+        finalPct = static_cast<int>(std::ceil(basePct * 0.75));
     }
 
-    if (acc < 0.0) acc = 0.0;
-    if (acc > 1.0) acc = 1.0;
-    return acc;
+    return static_cast<double>(finalPct) / 100.0;
 }
 
 bool Combatant::shootAt(std::shared_ptr<Combatant> target, BodyPartType targetPart) {
@@ -343,43 +353,16 @@ void CombatManager::displayCombatants(
                       << "A: "    << armHp    << "/" << armMax    << "  |  "
                       << "L: "    << legHp    << "/" << legMax    << "\n";
 
-            // VATS-style fixed probabilities based on distance
-            int baseHead, baseThor, baseArm, baseLeg;
-            switch (player.distance) {
-                case Distance::Far:
-                    baseHead = 15;
-                    baseThor = 25;
-                    baseArm  = 20;
-                    baseLeg  = 20;
-                    break;
-                case Distance::Medium:
-                    baseHead = 40;
-                    baseThor = 60;
-                    baseArm  = 50;
-                    baseLeg  = 50;
-                    break;
-                case Distance::Close:
-                    baseHead = 70;
-                    baseThor = 90;
-                    baseArm  = 80;
-                    baseLeg  = 80;
-                    break;
-                default:
-                    baseHead = baseThor = baseArm = baseLeg = 0;
-            }
+            // Calculate actual hit chances using calculateHitChance
+            double dHead = player.calculateHitChance(BodyPartType::Head);
+            double dThor = player.calculateHitChance(BodyPartType::Thorax);
+            double dArm  = player.calculateHitChance(BodyPartType::Arm);
+            double dLeg  = player.calculateHitChance(BodyPartType::Leg);
 
-            // If player is in cover, reduce each by 25% and round up
-            auto adjustForCover = [&](int basePct) {
-                if (player.inCover) {
-                    return static_cast<int>(std::ceil(basePct * 0.75));
-                }
-                return basePct;
-            };
-
-            int pctHead = adjustForCover(baseHead);
-            int pctThor = adjustForCover(baseThor);
-            int pctArm  = adjustForCover(baseArm);
-            int pctLeg  = adjustForCover(baseLeg);
+            int pctHead = static_cast<int>(std::ceil(dHead * 100));
+            int pctThor = static_cast<int>(std::ceil(dThor * 100));
+            int pctArm  = static_cast<int>(std::ceil(dArm  * 100));
+            int pctLeg  = static_cast<int>(std::ceil(dLeg  * 100));
 
             std::cout << "    Probabilities -> "
                       << "H: "  << pctHead << "%  |  "
