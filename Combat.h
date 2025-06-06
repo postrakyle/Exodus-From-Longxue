@@ -1,4 +1,4 @@
-//Comabat.h
+// File: Combat.h
 
 #ifndef ZOORK_COMBAT_H
 #define ZOORK_COMBAT_H
@@ -12,22 +12,22 @@
 #include <vector>
 
 //
-// Pick a body part to aim at:
+//  Pick a body part to aim at:
 //
 enum class BodyPartType { Head, Thorax, Arm, Leg };
 
 //
-// Special “trait” an enemy (or player) might have:
+//  Special “trait” an enemy (or player) might have:
 //
 enum class SpecialStat { None, Armored, Quick, Sharpshooter, Tank };
 
 //
-// Distance from target, for hit‐chance modifiers:
+//  Distance from target, for hit‐chance modifiers:
 //
 enum class Distance { Close = 0, Medium = 1, Far = 2 };
 
 //
-// BodyPart holds current & max HP for that limb/area:
+//  BodyPart holds current & max HP for that limb/area:
 //
 struct BodyPart {
     int hp;
@@ -37,7 +37,7 @@ struct BodyPart {
 };
 
 //
-// Base class for anything that can fight (player or enemy):
+//  Base class for anything that can fight (player or enemy):
 //
 class Combatant {
 public:
@@ -61,7 +61,7 @@ public:
     // Reload your weapon (if any)
     void reloadWeapon();
 
-    // Attempt to flee (50% chance unless legs are blacked‐out)
+    // Attempt to flee (only if at Far distance, and if legs are not blacked‐out)
     virtual bool attemptFlee();
 
     // Equip a Weapon instance onto this Combatant
@@ -71,13 +71,11 @@ public:
     std::shared_ptr<Weapon> getWeapon() const { return weapon; }
     std::string getName() const { return name; }
     bool isInCover() const { return inCover; }
-    Distance getDistance() const { return distance; }
     int getHp(BodyPartType part) const { return bodyParts.at(part).hp; }
 
     // In‐combat actions (made public so external code can invoke directly):
     void takeCover() { inCover = true; }
     void breakCover() { inCover = false; }
-    void startFlank() { flanking = true; flankCountdown = 2; }
     void tick() {
         if (flanking && --flankCountdown <= 0) {
             inCover = false;
@@ -106,10 +104,9 @@ protected:
     static std::mt19937 rng;
 };
 
-
 //
-// Enemy class: derives from Combatant, picks a random special stat and weapon.
-// Enemy::decideAction(...) is called each enemy turn during combat.
+//  Enemy class: derives from Combatant, picks a random special stat and weapon.
+//  Enemy::decideAction(...) is called each enemy turn during combat.
 //
 class Enemy : public Combatant {
 public:
@@ -120,10 +117,10 @@ private:
     EnemyType enemyType;
 };
 
-
 //
-// PlayerCombatant: wraps the real Player into a Combatant so we can run a fight.
-// Overwrites attemptFlee (can’t flee if legs blacked‐out). Also has a displayStatus().
+//  PlayerCombatant: wraps the real Player into a Combatant so we can run a fight.
+//  Overwrites attemptFlee (can’t flee unless at Far distance, or if legs blacked‐out).
+//  Also has a displayStatus().
 //
 class PlayerCombatant : public Combatant {
 public:
@@ -133,10 +130,9 @@ public:
     void displayStatus() const;
 };
 
-
 //
-// CombatManager: orchestrates a turn‐based loop between one PlayerCombatant
-// and a vector of Enemy instances. Returns true if player survives, false if dead.
+//  CombatManager: orchestrates a turn‐based loop between one PlayerCombatant
+//  and a vector of Enemy instances. Returns true if player survives, false if dead.
 //
 class CombatManager {
 public:
@@ -146,9 +142,12 @@ private:
     bool allEnemiesDead(const std::vector<std::shared_ptr<Enemy>>& enemies) const;
     void displayCombatants(PlayerCombatant& player, const std::vector<std::shared_ptr<Enemy>>& enemies) const;
     bool playerTurn(PlayerCombatant& player, std::vector<std::shared_ptr<Enemy>>& enemies);
-    bool enemiesTurn(PlayerCombatant& player, std::vector<std::shared_ptr<Enemy>>& enemies);
+    bool enemiesTurn(PlayerCombatant& player, const std::vector<std::shared_ptr<Enemy>>& enemies);
     bool promptPlayerAction(PlayerCombatant& player, std::vector<std::shared_ptr<Enemy>>& enemies);
     BodyPartType parseBodyPart(const std::string& s) const;
+
+    // Distance is universal between player and all enemies:
+    Distance currentDistance;
 };
 
 #endif // ZOORK_COMBAT_H
