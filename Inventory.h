@@ -1,66 +1,57 @@
+//Inventory.h
 #ifndef ZOORK_INVENTORY_H
 #define ZOORK_INVENTORY_H
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
-#include <optional>   // for std::optional
 
 class Item;
 
-// Manages a player’s carried items, equipped armor, and weapons.
+static constexpr int MAX_SLOTS = 20;
+static constexpr int MAX_WEAPONS = 2;
+
 class Inventory {
 public:
     Inventory();
 
-    // Add an item to inventory. Returns true if added successfully.
+    // Add an item to inventory. Returns false if no space or too many weapons.
     bool addItem(std::shared_ptr<Item> item);
 
-    // Remove and return an item by name from inventory. nullptr if not found.
+    // Remove an item by name; returns the removed shared_ptr or nullptr if not found.
     std::shared_ptr<Item> removeItem(const std::string &itemName);
 
-    // Check if an item with this name is in inventory.
+    // Check if inventory has an item with that name (by exact string match)
     bool hasItem(const std::string &itemName) const;
 
-    // List all item names currently carried.
+    // Get an Item pointer by name (nullptr if missing)
+    std::shared_ptr<Item> getItem(const std::string &itemName) const;
+
+    // List all item names currently in inventory:
     std::vector<std::string> listItemNames() const;
 
-    // Equip a piece of armor by name (only one armor slot).
+    // Equip/unequip (not strictly needed here, but kept for completeness)
     bool equipArmor(const std::string &armorName);
-
-    // Equip a weapon by name (up to MAX_WEAPONS).
     bool equipWeapon(const std::string &weaponName);
-
-    // Unequip the currently equipped armor (if any).
     bool unequipArmor();
-
-    // Unequip a specific weapon by name.
     bool unequipWeapon(const std::string &weaponName);
 
-    // Return total armor bonus from equipped armor (0 if none).
+    // If armor is equipped, return its bonus. Otherwise 0.
     int getArmorBonus() const;
 
-    // Return vector of all equipped weapons.
+    // Return all currently equipped weapons
     std::vector<std::shared_ptr<Item>> getEquippedWeapons() const;
 
-    // Clear all items and unequip everything.
+    // Clear everything
     void clearAll();
 
 private:
-    static constexpr int MAX_SLOTS = 6;      // total inventory capacity
-    static constexpr int MAX_WEAPONS = 2;    // max weapons equipped
-
-    // All items carried (including equipped ones).
-    std::vector<std::shared_ptr<Item>> items;
-
-    // Currently equipped armor (nullptr if none).
-    std::shared_ptr<Item> equippedArmor;
-
-    // Currently equipped weapons (size ≤ MAX_WEAPONS).
-    std::vector<std::shared_ptr<Item>> equippedWeapons;
-
-    // Helper: find index in `items` by item name; returns std::nullopt if not present.
     std::optional<size_t> findIndexByName(const std::string &name) const;
+
+    std::vector<std::shared_ptr<Item>> items;
+    std::vector<std::shared_ptr<Item>> equippedWeapons; // up to MAX_WEAPONS
+    std::shared_ptr<Item> equippedArmor;                // single armor slot
 };
 
 #endif // ZOORK_INVENTORY_H

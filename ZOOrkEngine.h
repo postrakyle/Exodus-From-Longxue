@@ -1,10 +1,9 @@
-#ifndef ZOORK_ZOORKENGINE_H
-#define ZOORK_ZOORKENGINE_H
+//ZOOrkEngine.h
+#ifndef ZOORKENGINE_H
+#define ZOORKENGINE_H
 
-#include "Player.h"
 #include "Room.h"
-#include <iostream>
-#include <sstream>
+#include "Player.h"
 #include <string>
 #include <vector>
 #include <map>
@@ -12,21 +11,12 @@
 
 class ZOOrkEngine {
 public:
-    // Construct with the starting room
-    ZOOrkEngine(std::shared_ptr<Room> start);
-
-    // Optionally give the engine a map of all rooms
+    explicit ZOOrkEngine(std::shared_ptr<Room> start);
     void setRoomMap(const std::map<std::string, std::shared_ptr<Room>>& m);
-
-    // Main game loop
     void run();
 
 private:
-    bool gameOver = false;
-    Player *player;
-    std::map<std::string, std::shared_ptr<Room>> roomMap;
-
-    // Command handlers
+    // Note: all handler methods now take 'const std::vector<std::string>&' to match the .cpp
     void handleGoCommand(const std::vector<std::string>&);
     void handleLookCommand(const std::vector<std::string>&);
     void handleSearchCommand(const std::vector<std::string>&);
@@ -36,9 +26,13 @@ private:
     void handleHelpCommand();
     void handleQuitCommand(const std::vector<std::string>&);
 
-    // Helpers for parsing input
-    static std::vector<std::string> tokenizeString(const std::string&);
-    static std::string makeLowercase(std::string);
+    std::vector<std::string> tokenizeString(const std::string&);
+    std::string makeLowercase(std::string);
+
+    Player* player;
+    std::map<std::string, std::shared_ptr<Room>> roomMap;
+    bool gameOver = false;
+    bool firstArrivalToZoo = true;
 };
 
-#endif // ZOORK_ZOORKENGINE_H
+#endif // ZOORKENGINE_H

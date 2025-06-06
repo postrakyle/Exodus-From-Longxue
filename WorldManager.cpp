@@ -1,6 +1,8 @@
+//WorldManager.cpp
 #include "WorldManager.h"
 #include "Passage.h"
 #include "Item.h"
+#include "Weapons.h"
 
 // Constructor: calls creation and connection routines
 WorldManager::WorldManager() {
@@ -39,8 +41,7 @@ void WorldManager::createRooms() {
     // TV Station
     ADD_ROOM("TV Station",
         "The TV Station’s facade is blackened by fire. Broken cameras and shattered monitors lie on the floor. "
-        "Smoke still curls from a toppled broadcast desk. A cracked rack is nearby. "
-        "Faint static echoes through the hallway, as though the last signal never quite died."
+        "Smoke still curls from a toppled broadcast desk. Faint static echoes through the hallway, as though the last signal never quite died."
     );
     rooms["TV Station"]->addLookable(
         "tv rack",
@@ -118,7 +119,7 @@ void WorldManager::createRooms() {
     );
     rooms["Factory"]->addSearchable(
         "smashed crate",
-        "You rummage in the crate and pull out an AFAK Medkit stamped with the Red Cross of the People’s Liberation Army."
+        "You rummage in the crate and pull out an AFAK Medkit."
     );
     rooms["Factory"]->addLookable(
         "mannequins",
@@ -234,7 +235,7 @@ void WorldManager::createRooms() {
     );
     rooms["Zoo"]->addSearchable(
         "zoo map",
-        "You peel off the map and uncover a scampered note: \"Secret tunnel under lion’s den—leads north. -Ranger Wu.\""
+        "You peel off the map and uncover a scrawled note: \"Secret tunnel under lion’s den—leads north. -Ranger Wu.\""
     );
 
     // Subway Station
@@ -331,7 +332,6 @@ void WorldManager::createRooms() {
     ADD_ROOM("The Lab",
         "White tile floors are cracked. Broken test tubes litter the counters. A flickering sign reads “Experiment Zone.”"
     );
-
     rooms["The Lab"]->addLookable(
         "digital console",
         "The console’s screen reads: \"Biohazard Containment Failure—Security Lockdown Engaged.\""
@@ -387,43 +387,42 @@ void WorldManager::createRooms() {
     );
 }
 
-
 void WorldManager::connectRooms() {
-    // Note: Passages use the destination’s name string as the “direction” label
-    Passage::createBasicPassage(rooms["Theater"].get(),           rooms["Suburbs"].get(),          "Suburbs",               false);
-    Passage::createBasicPassage(rooms["Suburbs"].get(),           rooms["Theater"].get(),          "Theater",               false);
-    Passage::createBasicPassage(rooms["Theater"].get(),           rooms["Zoo"].get(),              "Zoo",                   false);
-    Passage::createBasicPassage(rooms["Zoo"].get(),               rooms["Theater"].get(),          "Theater",               false);
-    Passage::createBasicPassage(rooms["Theater"].get(),           rooms["Sewer"].get(),            "Sewer",                 false);
-    Passage::createBasicPassage(rooms["Sewer"].get(),             rooms["Theater"].get(),          "Theater",               false);
-    Passage::createBasicPassage(rooms["Suburbs"].get(),           rooms["TV Station"].get(),       "TV Station",            false);
-    Passage::createBasicPassage(rooms["TV Station"].get(),        rooms["Suburbs"].get(),          "Suburbs",               false);
-    Passage::createBasicPassage(rooms["Suburbs"].get(),           rooms["Factory"].get(),          "Factory",               false);
-    Passage::createBasicPassage(rooms["Factory"].get(),           rooms["Suburbs"].get(),          "Suburbs",               false);
-    Passage::createBasicPassage(rooms["Suburbs"].get(),           rooms["Sewer"].get(),            "Sewer",                 false);
-    Passage::createBasicPassage(rooms["Sewer"].get(),             rooms["Suburbs"].get(),          "Suburbs",               false);
-    Passage::createBasicPassage(rooms["Zoo"].get(),               rooms["Subway Station"].get(),   "Subway Station",        false);
-    Passage::createBasicPassage(rooms["Subway Station"].get(),    rooms["Zoo"].get(),              "Zoo",                   false);
-    Passage::createBasicPassage(rooms["Zoo"].get(),               rooms["Back Streets"].get(),     "Back Streets",          false);
-    Passage::createBasicPassage(rooms["Back Streets"].get(),      rooms["Zoo"].get(),              "Zoo",                   false);
-    Passage::createBasicPassage(rooms["TV Station"].get(),        rooms["Back Streets"].get(),     "Back Streets",          false);
-    Passage::createBasicPassage(rooms["Back Streets"].get(),      rooms["TV Station"].get(),       "TV Station",            false);
-    Passage::createBasicPassage(rooms["Factory"].get(),           rooms["Lab North Entrance"].get(),"Lab North Entrance",   false);
-    Passage::createBasicPassage(rooms["Lab North Entrance"].get(),rooms["Factory"].get(),          "Factory",               false);
-    Passage::createBasicPassage(rooms["Factory"].get(),           rooms["Lab Underground Entrance"].get(),"Lab Underground Entrance", false);
-    Passage::createBasicPassage(rooms["Lab Underground Entrance"].get(), rooms["Factory"].get(),            "Factory",                 false);
-    Passage::createBasicPassage(rooms["Subway Station"].get(),    rooms["Lab Underground Entrance"].get(), "Lab Underground Entrance", false);
-    Passage::createBasicPassage(rooms["Lab Underground Entrance"].get(), rooms["Subway Station"].get(),            "Subway Station",         false);
-    Passage::createBasicPassage(rooms["Subway Station"].get(),    rooms["Sewer"].get(),             "Sewer",                false);
-    Passage::createBasicPassage(rooms["Sewer"].get(),             rooms["Subway Station"].get(),     "Subway Station",        false);
-    Passage::createBasicPassage(rooms["Lab North Entrance"].get(),rooms["The Lab"].get(),           "The Lab",                false);
-    Passage::createBasicPassage(rooms["The Lab"].get(),           rooms["Lab North Entrance"].get(), "Lab North Entrance",    false);
-    Passage::createBasicPassage(rooms["Lab North Entrance"].get(),rooms["Lab Courtyard"].get(),     "Lab Courtyard",         false);
-    Passage::createBasicPassage(rooms["Lab Courtyard"].get(),     rooms["Lab North Entrance"].get(), "Lab North Entrance",    false);
-    Passage::createBasicPassage(rooms["Lab Underground Entrance"].get(), rooms["The Lab"].get(),     "The Lab",               false);
-    Passage::createBasicPassage(rooms["The Lab"].get(),           rooms["Lab Underground Entrance"].get(), "Lab Underground Entrance", false);
-    Passage::createBasicPassage(rooms["Lab Courtyard"].get(),     rooms["The Lab"].get(),            "The Lab",               false);
-    Passage::createBasicPassage(rooms["The Lab"].get(),           rooms["Lab Courtyard"].get(),      "Lab Courtyard",         false);
+    // Passages use the destination’s name string as the “direction” label
+    Passage::createBasicPassage(rooms["Theater"].get(),            rooms["Suburbs"].get(),             "Suburbs",                 false);
+    Passage::createBasicPassage(rooms["Suburbs"].get(),            rooms["Theater"].get(),             "Theater",                 false);
+    Passage::createBasicPassage(rooms["Theater"].get(),            rooms["Zoo"].get(),                 "Zoo",                     false);
+    Passage::createBasicPassage(rooms["Zoo"].get(),                rooms["Theater"].get(),             "Theater",                 false);
+    Passage::createBasicPassage(rooms["Theater"].get(),            rooms["Sewer"].get(),               "Sewer",                   false);
+    Passage::createBasicPassage(rooms["Sewer"].get(),              rooms["Theater"].get(),             "Theater",                 false);
+    Passage::createBasicPassage(rooms["Suburbs"].get(),            rooms["TV Station"].get(),          "TV Station",              false);
+    Passage::createBasicPassage(rooms["TV Station"].get(),         rooms["Suburbs"].get(),             "Suburbs",                 false);
+    Passage::createBasicPassage(rooms["Suburbs"].get(),            rooms["Factory"].get(),             "Factory",                 false);
+    Passage::createBasicPassage(rooms["Factory"].get(),            rooms["Suburbs"].get(),             "Suburbs",                 false);
+    Passage::createBasicPassage(rooms["Suburbs"].get(),            rooms["Sewer"].get(),               "Sewer",                   false);
+    Passage::createBasicPassage(rooms["Sewer"].get(),              rooms["Suburbs"].get(),             "Suburbs",                 false);
+    Passage::createBasicPassage(rooms["Zoo"].get(),                rooms["Subway Station"].get(),      "Subway Station",          false);
+    Passage::createBasicPassage(rooms["Subway Station"].get(),     rooms["Zoo"].get(),                 "Zoo",                     false);
+    Passage::createBasicPassage(rooms["Zoo"].get(),                rooms["Back Streets"].get(),        "Back Streets",            false);
+    Passage::createBasicPassage(rooms["Back Streets"].get(),       rooms["Zoo"].get(),                 "Zoo",                     false);
+    Passage::createBasicPassage(rooms["TV Station"].get(),         rooms["Back Streets"].get(),        "Back Streets",            false);
+    Passage::createBasicPassage(rooms["Back Streets"].get(),       rooms["TV Station"].get(),          "TV Station",              false);
+    Passage::createBasicPassage(rooms["Factory"].get(),            rooms["Lab North Entrance"].get(),   "Lab North Entrance",      false);
+    Passage::createBasicPassage(rooms["Lab North Entrance"].get(), rooms["Factory"].get(),             "Factory",                 false);
+    Passage::createBasicPassage(rooms["Factory"].get(),            rooms["Lab Underground Entrance"].get(),"Lab Underground Entrance", false);
+    Passage::createBasicPassage(rooms["Lab Underground Entrance"].get(), rooms["Factory"].get(),           "Factory",                 false);
+    Passage::createBasicPassage(rooms["Subway Station"].get(),     rooms["Lab Underground Entrance"].get(), "Lab Underground Entrance", false);
+    Passage::createBasicPassage(rooms["Lab Underground Entrance"].get(), rooms["Subway Station"].get(),     "Subway Station",         false);
+    Passage::createBasicPassage(rooms["Subway Station"].get(),     rooms["Sewer"].get(),                "Sewer",                   false);
+    Passage::createBasicPassage(rooms["Sewer"].get(),              rooms["Subway Station"].get(),        "Subway Station",         false);
+    Passage::createBasicPassage(rooms["Lab North Entrance"].get(), rooms["The Lab"].get(),              "The Lab",                 false);
+    Passage::createBasicPassage(rooms["The Lab"].get(),            rooms["Lab North Entrance"].get(),     "Lab North Entrance",     false);
+    Passage::createBasicPassage(rooms["Lab North Entrance"].get(), rooms["Lab Courtyard"].get(),         "Lab Courtyard",          false);
+    Passage::createBasicPassage(rooms["Lab Courtyard"].get(),      rooms["Lab North Entrance"].get(),     "Lab North Entrance",     false);
+    Passage::createBasicPassage(rooms["Lab Underground Entrance"].get(), rooms["The Lab"].get(),            "The Lab",                false);
+    Passage::createBasicPassage(rooms["The Lab"].get(),            rooms["Lab Underground Entrance"].get(), "Lab Underground Entrance", false);
+    Passage::createBasicPassage(rooms["Lab Courtyard"].get(),      rooms["The Lab"].get(),               "The Lab",                false);
+    Passage::createBasicPassage(rooms["The Lab"].get(),            rooms["Lab Courtyard"].get(),          "Lab Courtyard",          false);
 }
 
 std::shared_ptr<Room> WorldManager::getStartingRoom() const {

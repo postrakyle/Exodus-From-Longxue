@@ -1,8 +1,11 @@
+//ZOOrkEngine.cpp
 #include "ZOOrkEngine.h"
 #include "Passage.h"
 #include "Room.h"
 #include "Item.h"
 #include "Player.h"
+#include "Weapons.h"
+#include "Combat.h"
 #include <algorithm>
 #include <sstream>
 #include <limits>
@@ -12,7 +15,7 @@ ZOOrkEngine::ZOOrkEngine(std::shared_ptr<Room> start) {
     player = Player::instance();
     player->setCurrentRoom(start.get());
 
-    // Show only the room description and exits (no separate inspectable list).
+    // Show room description and exits
     start->enter();
     std::cout << "\nExits:\n";
     Room* cur = player->getCurrentRoom();
@@ -89,6 +92,53 @@ void ZOOrkEngine::handleGoCommand(const std::vector<std::string>& arguments) {
             for (const auto& exitPair : dest->getAllExits()) {
                 std::cout << "  - " << exitPair.second->getTo()->getName() << "\n";
             }
+
+            // ─────────────────────────────────────────────────────────────
+            // If we just entered the Zoo for the first time, trigger combat:
+            // ─────────────────────────────────────────────────────────────
+            if (dest->getName() == "Zoo" && firstArrivalToZoo) {
+                firstArrivalToZoo = false;
+
+                std::cout << "\nAs you approach the abandoned zoo, a scavenger emerges from a shattered cage!\n\n";
+
+                // 1) Build a PlayerCombatant from the existing Player
+                auto playerCombatant = std::make_shared<PlayerCombatant>("You");
+
+                // If the Player’s inventory contains a “Rifle” item, equip that weapon:
+                auto rifleItem = player->getInventoryItem("Rifle");
+                if (rifleItem && rifleItem->getWeapon()) {
+                    playerCombatant->equipWeapon(rifleItem->getWeapon());
+                } else {
+                    // Otherwise default to pistol
+                    playerCombatant->equipWeapon(WeaponFactory::createWeapon(WeaponType::Pistol));
+                }
+
+                // 2) Create a single Scav enemy
+                std::vector<std::shared_ptr<Enemy>> foes;
+                auto scav = std::make_shared<Enemy>(EnemyType::Scav);
+                foes.push_back(scav);
+
+                // 3) Engage
+                CombatManager cm;
+                bool playerSurvived = cm.engage(*playerCombatant, foes);
+
+                if (!playerSurvived) {
+                    std::cout << "\nYou have been killed in combat. Game Over.\n";
+                    exit(0);
+                } else {
+                    std::cout << "\nYou emerge victorious from the abandoned cages. The scavenger lies still.\n";
+                    // Drop a “Pistol” item into the Zoo for the player to pick up
+                    Room* zooRoom = dest;
+                    auto pistolItem = std::make_shared<Item>(
+                        "Pistol",
+                        "A scavenger’s dropped 9mm pistol lies here.",
+                        WeaponFactory::createWeapon(WeaponType::Pistol)
+                    );
+                    zooRoom->addLookable("dropped pistol", "A scavenger’s pistol lies on the ground.");
+                    zooRoom->addSearchable("dropped pistol", "You pick up the dropped Pistol.");
+                }
+            }
+
             return;
         }
     }
@@ -98,7 +148,6 @@ void ZOOrkEngine::handleGoCommand(const std::vector<std::string>& arguments) {
 void ZOOrkEngine::handleLookCommand(const std::vector<std::string>& arguments) {
     Room* currentRoom = player->getCurrentRoom();
     if (arguments.empty()) {
-        // Just “look”: Redisplay the room’s description and exits
         std::cout << "\n" << currentRoom->getDescription() << "\n";
         std::cout << "Exits:\n";
         for (const auto& kv : currentRoom->getAllExits()) {
@@ -106,7 +155,6 @@ void ZOOrkEngine::handleLookCommand(const std::vector<std::string>& arguments) {
         }
     }
     else {
-        // “look <object>”
         std::string target;
         for (size_t i = 0; i < arguments.size(); ++i) {
             if (i > 0) target += " ";
@@ -137,19 +185,21 @@ void ZOOrkEngine::handleSearchCommand(const std::vector<std::string>& arguments)
 
         // Spawn tangible items after searching, if not already created:
         if (target == "rifle case") {
-            auto rifle = std::make_shared<Item>("Rifle", "A standard assault rifle.", ItemType::Weapon);
-            rifle->setDamage(40);
+            auto rifle = WeaponFactory::createWeapon(WeaponType::Rifle);
             currentRoom->addLookable("rifle",   "A sturdy assault rifle leans against the seat.");
-            currentRoom->addSearchable("rifle", "You pick up the Rifle. Damage: 40.");
+            currentRoom->addSearchable("rifle", "You pick up the Rifle. Damage: 80.");
         }
         else if (target == "shotgun rack") {
-            auto shotgun = std::make_shared<Item>("Shotgun", "A worn but functional shotgun.", ItemType::Weapon);
-            shotgun->setDamage(60);
+            auto shotgun = WeaponFactory::createWeapon(WeaponType::Shotgun);
             currentRoom->addLookable("shotgun",   "A shotgun rests atop a broken chair.");
             currentRoom->addSearchable("shotgun", "You pick up the Shotgun. Damage: 60.");
         }
         else if (target == "tv rack") {
-            auto keycard = std::make_shared<Item>("Lab Keycard", "A Level-2 lab keycard.", ItemType::Keycard);
+            auto keycard = std::make_shared<Item>(
+                "Lab Keycard",
+                "A Level-2 lab keycard.",
+                ItemType::Keycard
+            );
             currentRoom->addLookable("lab keycard",   "A Level-2 lab keycard glints on the counter.");
             currentRoom->addSearchable("lab keycard","You pick up the Lab Keycard. Can open the lab.");
         }
@@ -184,20 +234,36 @@ void ZOOrkEngine::handleTakeCommand(const std::vector<std::string>& arguments) {
         } else if (target == "lab keycard") {
             properName = "Lab Keycard";
             type = ItemType::Keycard;
+        } else if (target == "dropped pistol") {
+            properName = "Pistol";
+            type = ItemType::Weapon;
         } else {
             std::cout << "You can't pick that up.\n";
             return;
         }
 
-        auto newItem = std::make_shared<Item>(properName, "", type);
+        std::shared_ptr<Item> newItem;
         if (type == ItemType::Weapon) {
-            if (properName == "Rifle")   newItem->setDamage(40);
-            else if (properName == "Shotgun") newItem->setDamage(60);
+            WeaponType wtype = WeaponType::Pistol;
+            if (properName == "Rifle")       wtype = WeaponType::Rifle;
+            else if (properName == "Shotgun") wtype = WeaponType::Shotgun;
+            else if (properName == "Pistol")  wtype = WeaponType::Pistol;
+
+            newItem = std::make_shared<Item>(
+                properName,
+                "A " + properName + " dropped on the ground.",
+                WeaponFactory::createWeapon(wtype)
+            );
+        } else {
+            newItem = std::make_shared<Item>(
+                properName,
+                "A Level-2 lab keycard.",
+                ItemType::Keycard
+            );
         }
 
         if (player->pickUpItem(newItem)) {
             std::cout << "Picked up: " << properName << "\n";
-            // Optionally remove from room’s look/search lists here
         }
     }
     else {

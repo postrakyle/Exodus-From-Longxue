@@ -1,62 +1,31 @@
+//Item.cpp
+
 #include "Item.h"
-#include "Player.h"
-#include <iostream>
 
-Item::Item(const std::string &name, const std::string &desc, ItemType type)
-    : GameObject(name, desc), itemType(type) {}
+//
+// Weapon‐backed constructor
+//
+Item::Item(const std::string &n, const std::string &desc, std::shared_ptr<Weapon> w)
+    : name(n), description(desc), itemType(ItemType::Weapon), weaponPtr(std::move(w)),
+      armorBonus(0), healAmount(0) { }
 
-ItemType Item::getItemType() const {
-    return itemType;
-}
+//
+// Armor constructor
+//
+Item::Item(const std::string &n, const std::string &desc, int armorBonus_)
+    : name(n), description(desc), itemType(ItemType::Armor),
+      weaponPtr(nullptr), armorBonus(armorBonus_), healAmount(0) { }
 
-int Item::getDamage() const {
-    return damage;
-}
+//
+// Medkit constructor
+//
+Item::Item(const std::string &n, const std::string &desc, int healAmount_, bool isMedkit)
+    : name(n), description(desc), itemType(ItemType::Medkit),
+      weaponPtr(nullptr), armorBonus(0), healAmount(healAmount_) { }
 
-void Item::setDamage(int dmg) {
-    damage = dmg;
-}
-
-int Item::getArmorBonus() const {
-    return armorBonus;
-}
-
-void Item::setArmorBonus(int bonus) {
-    armorBonus = bonus;
-}
-
-int Item::getHealAmount() const {
-    return healAmount;
-}
-
-void Item::setHealAmount(int heal) {
-    healAmount = heal;
-}
-
-void Item::use(Player *player) {
-    if (!player) return;
-
-    switch (itemType) {
-        case ItemType::Armor:
-            std::cout << "You equip " << getName()
-                      << ". It grants +" << armorBonus << " armor bonus.\n";
-            player->equipArmorBonus(armorBonus);
-            break;
-        case ItemType::Medkit:
-            std::cout << "You use " << getName()
-                      << " and restore " << healAmount << " health.\n";
-            player->useMedkitHeal(healAmount);
-            break;
-        case ItemType::Keycard:
-            std::cout << "You swipe the " << getName()
-                      << ". It unlocks the lab door.\n";
-            player->useKeycard(getName());
-            break;
-        case ItemType::OverwriteCard:
-            std::cout << "You hold up the overwrite card. It may override security later.\n";
-            break;
-        default:
-            std::cout << "You can't use that right now.\n";
-            break;
-    }
-}
+//
+// Keycard or generic‐type constructor
+//
+Item::Item(const std::string &n, const std::string &desc, ItemType type_)
+    : name(n), description(desc), itemType(type_),
+      weaponPtr(nullptr), armorBonus(0), healAmount(0) { }

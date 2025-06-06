@@ -1,7 +1,7 @@
+//Inventory.cpp
 #include "Inventory.h"
 #include "Item.h"
 #include <algorithm>
-#include <optional>   // for std::optional
 
 Inventory::Inventory() {}
 
@@ -9,26 +9,20 @@ bool Inventory::addItem(std::shared_ptr<Item> item) {
     if (!item) return false;
 
     ItemType type = item->getItemType();
-
-    // If it’s a weapon, enforce MAX_WEAPONS
     if (type == ItemType::Weapon) {
         if ((int)equippedWeapons.size() >= MAX_WEAPONS) {
             return false;
         }
         equippedWeapons.push_back(item);
-    }
-    // If it’s armor, auto‐equip (one slot)
-    else if (type == ItemType::Armor) {
+    } else if (type == ItemType::Armor) {
         equippedArmor = item;
     }
 
-    // Now try to store in the general inventory slots
     if ((int)items.size() < MAX_SLOTS) {
         items.push_back(item);
         return true;
     }
-
-    return false; 
+    return false;
 }
 
 std::shared_ptr<Item> Inventory::removeItem(const std::string &itemName) {
@@ -39,12 +33,12 @@ std::shared_ptr<Item> Inventory::removeItem(const std::string &itemName) {
     auto removed = items[idx];
     items.erase(items.begin() + idx);
 
-    // If it was equipped armor, unequip it
+    // If it was equipped armor, unequip
     if (equippedArmor && equippedArmor->getName() == itemName) {
         equippedArmor.reset();
     }
 
-    // If it was an equipped weapon, remove from that list
+    // If it was an equipped weapon, remove from equippedWeapons
     equippedWeapons.erase(
         std::remove_if(
             equippedWeapons.begin(),
@@ -53,12 +47,17 @@ std::shared_ptr<Item> Inventory::removeItem(const std::string &itemName) {
         ),
         equippedWeapons.end()
     );
-
     return removed;
 }
 
 bool Inventory::hasItem(const std::string &itemName) const {
     return static_cast<bool>(findIndexByName(itemName));
+}
+
+std::shared_ptr<Item> Inventory::getItem(const std::string &itemName) const {
+    auto idxOpt = findIndexByName(itemName);
+    if (!idxOpt) return nullptr;
+    return items[*idxOpt];
 }
 
 std::vector<std::string> Inventory::listItemNames() const {

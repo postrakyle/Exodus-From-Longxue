@@ -1,14 +1,18 @@
-// --- NullCommand.h ---
-#ifndef ZOORK_NULLCOMMAND_H
-#define ZOORK_NULLCOMMAND_H
+//NullCommand.h
+#ifndef NULLCOMMAND_H
+#define NULLCOMMAND_H
 
 #include "Command.h"
 #include <iostream>
 
 class NullCommand : public Command {
 public:
-    NullCommand() : Command(nullptr) {}
+    // Must forward a GameObject* up to the base class:
+    explicit NullCommand(GameObject* g) : Command(g) {}
+    ~NullCommand() override = default;
+
+    // Only declare execute() here (no inline body)
     void execute() override;
 };
 
-#endif //ZOORK_NULLCOMMAND_H
+#endif // NULLCOMMAND_H

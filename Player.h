@@ -1,3 +1,4 @@
+//Player.h
 #ifndef ZOORK_PLAYER_H
 #define ZOORK_PLAYER_H
 
@@ -6,8 +7,9 @@
 #include "Inventory.h"
 #include <memory>
 #include <string>
-#include <vector>   // <-- for std::vector
+#include <vector>
 
+// Forward‐declare Item so we can return shared_ptr<Item>
 class Item;
 
 class Player : public Character {
@@ -26,6 +28,7 @@ public:
         return static_cast<bool>(removed);
     }
 
+    // Check if we have a named keycard
     bool hasKeycard(const std::string &cardName) const {
         return inventory.hasItem(cardName);
     }
@@ -33,14 +36,22 @@ public:
         inventory.removeItem(cardName);
     }
 
+    // Return a pointer to an Item in inventory (nullptr if missing)
+    std::shared_ptr<Item> getInventoryItem(const std::string &itemName) const {
+        return inventory.getItem(itemName);
+    }
+
+    // Return armor bonus from equipped armor
     int getArmorBonus() const {
         return inventory.getArmorBonus();
     }
+
+    // Return currently equipped weapons
     auto getEquippedWeapons() const {
         return inventory.getEquippedWeapons();
     }
 
-    // New: list all item names in inventory
+    // List all item names in inventory
     std::vector<std::string> listInventory() const {
         return inventory.listItemNames();
     }
@@ -66,4 +77,4 @@ private:
     Player &operator=(const Player &) = delete;
 };
 
-#endif //ZOORK_PLAYER_H
+#endif // ZOORK_PLAYER_H

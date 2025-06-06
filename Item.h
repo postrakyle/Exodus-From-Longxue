@@ -1,46 +1,52 @@
+//Item.h
 #ifndef ZOORK_ITEM_H
 #define ZOORK_ITEM_H
 
-#include "GameObject.h"
+#include "Weapons.h"
 #include <memory>
 #include <string>
 
-// Enum to categorize items
-enum class ItemType {
-    Weapon,
-    Armor,
-    Medkit,
-    Keycard,
-    OverwriteCard
-};
+//
+// All possible item categories:
+//
+enum class ItemType { Weapon, Armor, Medkit, Keycard, Generic };
 
-class Player;
-
-class Item : public GameObject {
+class Item {
 public:
-    // Constructor: name, description, and type
-    Item(const std::string &name, const std::string &desc, ItemType type);
+    // 1) Weapon‐backed constructor:
+    Item(const std::string &n, const std::string &desc, std::shared_ptr<Weapon> w);
 
-    // Accessors
-    ItemType getItemType() const;
+    // 2) Armor constructor (bonus = extra HP granted when equipped):
+    Item(const std::string &n, const std::string &desc, int armorBonus);
 
-    int getDamage() const;
-    void setDamage(int dmg);
+    // 3) Medkit constructor (healAmount is how much it heals):
+    Item(const std::string &n, const std::string &desc, int healAmount, bool isMedkit);
 
-    int getArmorBonus() const;
-    void setArmorBonus(int bonus);
+    // 4) Keycard or Generic constructor:
+    Item(const std::string &n, const std::string &desc, ItemType type);
 
-    int getHealAmount() const;
-    void setHealAmount(int heal);
+    const std::string& getName() const { return name; }
+    const std::string& getDescription() const { return description; }
+    ItemType getItemType() const { return itemType; }
 
-    // “Use” the item (e.g. armor, medkit, keycard)
-    void use(Player *player);
+    // If this is weapon‐backed, returns its Weapon ptr; otherwise nullptr
+    std::shared_ptr<Weapon> getWeapon() const { return weaponPtr; }
+
+    // If Armor, return its bonus; otherwise 0
+    int getArmorBonus() const { return armorBonus; }
+
+    // If Medkit, return healing amount; otherwise 0
+    int getHealAmount() const { return healAmount; }
 
 private:
-    ItemType itemType;
-    int damage = 0;      // for weapons
-    int armorBonus = 0;  // for armor
-    int healAmount = 0;  // for medkits
+    std::string name;
+    std::string description;
+    ItemType itemType = ItemType::Generic;
+
+    // Only one of these fields is non‐null / nonzero depending on type:
+    std::shared_ptr<Weapon> weaponPtr; // for ItemType::Weapon
+    int armorBonus = 0;                // for ItemType::Armor
+    int healAmount = 0;                // for ItemType::Medkit
 };
 
-#endif //ZOORK_ITEM_H
+#endif // ZOORK_ITEM_H
