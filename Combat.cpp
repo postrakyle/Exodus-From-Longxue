@@ -116,6 +116,12 @@ bool Combatant::shootAt(std::shared_ptr<Combatant> target, BodyPartType targetPa
         return false;
     }
 
+    // If target is behind cover, shot is blocked
+    if (target->inCover) {
+        std::cout << name << "'s shot is blocked by " << target->getName() << "'s cover!\n";
+        return true;
+    }
+
     double hitChance = calculateHitChance(targetPart);
     std::uniform_real_distribution<double> uni(0.0, 1.0);
     double roll = uni(rng);
@@ -143,7 +149,7 @@ bool Combatant::shootAt(std::shared_ptr<Combatant> target, BodyPartType targetPa
                     break;
                 case BodyPartType::Arm:
                     std::cout << name << " shoots into " << target->getName()
-                              << "'s arm, severing bone and tendons. The limb hanges by a shred, "
+                              << "'s arm, severing bone and tendons. The limb hangs by a shred, "
                               << "flesh splattering the ground. " << target->getName()
                               << " staggers, agony etched on their face before collapsing, "
                               << "blood pulsing from the torn stump.\n";
@@ -179,22 +185,8 @@ void Combatant::reloadWeapon() {
 }
 
 bool Combatant::attemptFlee() {
-    if (distance != Distance::Far) {
-        std::cout << name << " can't flee unless you're far away!\n";
-        return false;
-    }
-    if (bodyParts.at(BodyPartType::Leg).isBlackedOut()) {
-        std::cout << name << " tries to flee but legs are useless!\n";
-        return false;
-    }
-    std::uniform_real_distribution<double> uni(0.0, 1.0);
-    if (uni(rng) < 0.5) {
-        std::cout << name << " successfully flees the combat!\n";
-        return true;
-    } else {
-        std::cout << name << " attempts to flee but fails!\n";
-        return false;
-    }
+    // No longer used directly; fleeing logic is in promptPlayerAction
+    return false;
 }
 
 //
@@ -233,6 +225,12 @@ void Enemy::decideAction(std::shared_ptr<Combatant> player) {
         return;
     }
 
+    // If player is behind cover, enemy cannot hit
+    if (player->inCover) {
+        std::cout << name << "'s shot is blocked by " << player->getName() << "'s cover!\n";
+        return;
+    }
+
     std::uniform_real_distribution<double> uni(0.0, 1.0);
     BodyPartType target = BodyPartType::Thorax;
     if (!player->bodyParts.at(BodyPartType::Head).isBlackedOut() && uni(rng) < 0.2) {
@@ -258,15 +256,8 @@ PlayerCombatant::PlayerCombatant(const std::string& n)
 }
 
 bool PlayerCombatant::attemptFlee() {
-    if (distance != Distance::Far) {
-        std::cout << name << " can't flee unless you're far away!\n";
-        return false;
-    }
-    if (bodyParts.at(BodyPartType::Leg).isBlackedOut()) {
-        std::cout << name << " tries to flee but legs are gone!\n";
-        return false;
-    }
-    return Combatant::attemptFlee();
+    // No longer used directly; fleeing logic is in promptPlayerAction
+    return false;
 }
 
 void PlayerCombatant::displayStatus() const {
@@ -336,7 +327,7 @@ bool CombatManager::engage(PlayerCombatant& player,
             return !player.isDead();
         }
         if (allEnemiesDead(enemies)) {
-            std::cout << "\nAll enemies are down. You survived!\n";
+            std::cout << "The enemy lies still.\n";
             return true;
         }
 
@@ -344,7 +335,7 @@ bool CombatManager::engage(PlayerCombatant& player,
             return false;
         }
         if (allEnemiesDead(enemies)) {
-            std::cout << "\nAll enemies are down. You survived!\n";
+            std::cout << "The enemy lies still.\n";
             return true;
         }
         if (player.isDead()) {
@@ -381,7 +372,7 @@ bool CombatManager::promptPlayerAction(PlayerCombatant& player,
 {
     std::cout << "\nChoose an action:\n";
     std::cout << " 1) Move Closer   2) Move Further   3) Take Cover\n";
-    std::cout << " 4) Shoot         5) Reload         6) Flee\n";
+    std::cout << " 4) Shoot         5) Reload         6) Flee <location>\n";
     std::cout << "Command> ";
 
     std::string cmd;
@@ -447,11 +438,16 @@ bool CombatManager::promptPlayerAction(PlayerCombatant& player,
         player.reloadWeapon();
         return true;
     }
-    if (cmd == "6" || cmd == "flee") {
-        if (player.attemptFlee()) {
-            return false;
+    if (cmd.rfind("flee", 0) == 0) {
+        std::istringstream iss(cmd);
+        std::string word, location;
+        iss >> word;
+        if (!(iss >> location)) {
+            std::cout << "Usage: flee <location>\n";
+            return true;
         }
-        return true;
+        std::cout << "You flee back to " << location << ".\n";
+        return false;
     }
 
     std::cout << "Unknown command. Try again.\n";
