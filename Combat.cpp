@@ -309,6 +309,37 @@ void CombatManager::displayCombatants(
                       << "Th: "   << thorHp   << "/" << thorMax   << "  |  "
                       << "A: "    << armHp    << "/" << armMax    << "  |  "
                       << "L: "    << legHp    << "/" << legMax    << "\n";
+
+            // VATS-style fixed probabilities based on distance
+            int pctHead, pctThor, pctArm, pctLeg;
+            switch (player.distance) {
+                case Distance::Far:
+                    pctHead = 15;
+                    pctThor = 25;
+                    pctArm  = 20;
+                    pctLeg  = 20;
+                    break;
+                case Distance::Medium:
+                    pctHead = 40;
+                    pctThor = 60;
+                    pctArm  = 50;
+                    pctLeg  = 50;
+                    break;
+                case Distance::Close:
+                    pctHead = 70;
+                    pctThor = 90;
+                    pctArm  = 80;
+                    pctLeg  = 80;
+                    break;
+                default:
+                    pctHead = pctThor = pctArm = pctLeg = 0;
+            }
+
+            std::cout << "    Probabilities -> "
+                      << "H: "  << pctHead << "%  |  "
+                      << "T: "  << pctThor << "%  |  "
+                      << "A: "  << pctArm  << "%  |  "
+                      << "L: "  << pctLeg  << "%\n";
         }
     }
     std::cout << "===============\n";
