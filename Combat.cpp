@@ -20,7 +20,6 @@ Combatant::Combatant(const std::string& n, bool isPlayerCtrl)
       flankCountdown(0),
       distance(Distance::Medium) // default start at Medium
 {
-    // By default, assume a “PMC”/player‐class (not Scav) unless overridden
     initBodyParts(false);
 }
 
@@ -47,7 +46,6 @@ bool Combatant::isDead() const {
 void Combatant::applyDamage(BodyPartType part, int dmg) {
     auto& bp = bodyParts[part];
     if (bp.hp <= 0) {
-        // Already “blacked out”: if head or thorax is targeted again, ensure full kill
         bp.hp = 0;
         if (part == BodyPartType::Head || part == BodyPartType::Thorax) {
             bodyParts[BodyPartType::Thorax].hp = 0;
@@ -62,19 +60,13 @@ void Combatant::applyDamage(BodyPartType part, int dmg) {
 double Combatant::calculateHitChance(BodyPartType targetPart) const {
     if (!weapon) return 0.0;
 
-    // Base weapon accuracy
     double acc = weapon->getAccuracy();
-
-    // If it’s a scoped Rifle, grant +40%
     if (weapon->getType() == WeaponType::Rifle && weapon->isScoped()) {
         acc += 0.40;
     }
-
-    // Distance modifier: Close=×1.0, Medium=×0.7, Far=×0.4
     static constexpr double distMods[3] = {1.0, 0.7, 0.4};
     acc *= distMods[static_cast<int>(distance)];
 
-    // Body part multiplier
     double partMod = 1.0;
     switch (targetPart) {
         case BodyPartType::Head:   partMod = 0.30; break;
@@ -84,12 +76,10 @@ double Combatant::calculateHitChance(BodyPartType targetPart) const {
     }
     acc *= partMod;
 
-    // If target is in cover, cut chance in half
     if (inCover) {
         acc *= 0.5;
     }
 
-    // Clamp to [0,1]
     if (acc < 0.0) acc = 0.0;
     if (acc > 1.0) acc = 1.0;
     return acc;
@@ -107,16 +97,17 @@ bool Combatant::shootAt(std::shared_ptr<Combatant> target, BodyPartType targetPa
     std::uniform_real_distribution<double> uni(0.0, 1.0);
     double roll = uni(rng);
 
+    // Simplified names for printing
+    std::string attackerName = isPlayer ? "You" : name;
+    std::string targetName   = target->isPlayer ? "you" : target->getName();
+
     if (roll <= hitChance) {
-        // Hit!
         int damage = weapon->getDamage();
-        // If that part is already blacked out, force an instant kill
         if (target->bodyParts.at(targetPart).isBlackedOut()) {
-            damage = 9999;
+            damage = 9999; // overkill if already blacked out
         }
         target->applyDamage(targetPart, damage);
 
-        // If target was in cover, 50% chance we knock them out of cover
         if (target->inCover) {
             std::uniform_real_distribution<double> breaker(0.0, 1.0);
             if (breaker(rng) < 0.5) {
@@ -124,22 +115,19 @@ bool Combatant::shootAt(std::shared_ptr<Combatant> target, BodyPartType targetPa
             }
         }
 
-        std::cout << name << " hits " << target->getName()
-                  << " in the "
-                  << (targetPart == BodyPartType::Head   ? "Head"
-                      : targetPart == BodyPartType::Thorax ? "Thorax"
-                      : targetPart == BodyPartType::Arm     ? "Arm"
-                                                           : "Leg")
-                  << " for " << damage << " damage!\n";
+        // Print only hit location
+        std::string partStr = (targetPart == BodyPartType::Head    ? "head"
+                            : targetPart == BodyPartType::Thorax  ? "thorax"
+                            : targetPart == BodyPartType::Arm     ? "arm"
+                                                                    : "leg");
+        std::cout << attackerName << " hit " << targetName << " in the " << partStr << ".\n";
     } else {
-        // Miss
-        std::cout << name << " fires at " << target->getName() << " and misses.\n";
-        // If target was in cover, 30% chance stray break cover
+        std::cout << attackerName << " fired at " << targetName << " and missed.\n";
         if (target->inCover) {
             std::uniform_real_distribution<double> breaker(0.0, 1.0);
             if (breaker(rng) < 0.3) {
                 target->breakCover();
-                std::cout << target->getName() << "'s cover is destroyed by stray shots!\n";
+                std::cout << targetName << "'s cover is destroyed by stray shots!\n";
             }
         }
     }
@@ -148,28 +136,31 @@ bool Combatant::shootAt(std::shared_ptr<Combatant> target, BodyPartType targetPa
 
 void Combatant::reloadWeapon() {
     if (weapon) {
-        std::cout << name << " reloads the " << weapon->getName() << ".\n";
+        std::string actor = isPlayer ? "You" : name;
+        std::cout << actor << " reloads the " << weapon->getName() << ".\n";
         weapon->reload();
     }
 }
 
 bool Combatant::attemptFlee() {
-    // Only allow flee if at Far distance and legs are not blacked out
     if (distance != Distance::Far) {
-        std::cout << name << " can't flee unless you're far away!\n";
+        std::string actor = isPlayer ? "You" : name;
+        std::cout << actor << " can't flee unless you're far away!\n";
         return false;
     }
     if (bodyParts.at(BodyPartType::Leg).isBlackedOut()) {
-        std::cout << name << " tries to flee but legs are useless!\n";
+        std::string actor = isPlayer ? "You" : name;
+        std::cout << actor << " tries to flee but legs are useless!\n";
         return false;
     }
-    // Otherwise 50% chance
     std::uniform_real_distribution<double> uni(0.0, 1.0);
     if (uni(rng) < 0.5) {
-        std::cout << name << " successfully flees the combat!\n";
+        std::string actor = isPlayer ? "You" : name;
+        std::cout << actor << " successfully flees the combat!\n";
         return true;
     } else {
-        std::cout << name << " attempts to flee but fails!\n";
+        std::string actor = isPlayer ? "You" : name;
+        std::cout << actor << " attempts to flee but fails!\n";
         return false;
     }
 }
@@ -180,16 +171,16 @@ bool Combatant::attemptFlee() {
 
 Enemy::Enemy(EnemyType t)
     : Combatant(
-          t == EnemyType::Scav
-            ? "Scavenger"
-            : (t == EnemyType::PMC_Chinese ? "PMC (C)" : "PMC (J)"),
-          false)
+          (t == EnemyType::Scav
+             ? "Scavenger"
+             : (t == EnemyType::PMC_Chinese ? "PMC (C)" : "PMC (J)")),
+          false
+      ),
+      enemyType(t)
 {
-    enemyType = t;
     bool isScav = (t == EnemyType::Scav);
     initBodyParts(isScav);
 
-    // Randomly assign a special stat:
     std::vector<SpecialStat> pool = {
         SpecialStat::None,
         SpecialStat::Armored,
@@ -200,7 +191,6 @@ Enemy::Enemy(EnemyType t)
     std::uniform_int_distribution<size_t> pick(0, pool.size() - 1);
     special = pool[pick(rng)];
 
-    // Equip a weapon based on type:
     if (isScav) {
         equipWeapon(WeaponFactory::createWeapon(WeaponType::Pistol));
     } else {
@@ -212,20 +202,17 @@ Enemy::Enemy(EnemyType t)
         }
     }
 
-    // Enemies never use cover:
     inCover = false;
 }
 
 void Enemy::decideAction(std::shared_ptr<Combatant> player) {
     if (isDead()) return;
 
-    // If out of ammo or needs reload, reload:
     if (weapon->needsReload() || weapon->getAmmo() == 0) {
         reloadWeapon();
         return;
     }
 
-    // Always shoot; choose target body part based on what's not blacked out
     std::uniform_real_distribution<double> uni(0.0, 1.0);
     BodyPartType target = BodyPartType::Thorax;
     if (!player->bodyParts.at(BodyPartType::Head).isBlackedOut() && uni(rng) < 0.2) {
@@ -251,35 +238,35 @@ PlayerCombatant::PlayerCombatant(const std::string& n)
 }
 
 bool PlayerCombatant::attemptFlee() {
-    // Only allow flee if at Far distance and legs are not blacked out
     if (distance != Distance::Far) {
-        std::cout << name << " can't flee unless you're far away!\n";
+        std::cout << "You can't flee unless you're far away!\n";
         return false;
     }
     if (bodyParts.at(BodyPartType::Leg).isBlackedOut()) {
-        std::cout << name << " tries to flee but legs are gone!\n";
+        std::cout << "You try to flee but legs are gone!\n";
         return false;
     }
     return Combatant::attemptFlee();
 }
 
 void PlayerCombatant::displayStatus() const {
-    // Display all limb HP on one line, separated by " | "
-    std::cout << "\n=== " << name << " Status ===\n";
-    std::cout << "Head: "   << bodyParts.at(BodyPartType::Head).hp   << "/" << bodyParts.at(BodyPartType::Head).maxHp   << " | "
-              << "Thorax: " << bodyParts.at(BodyPartType::Thorax).hp << "/" << bodyParts.at(BodyPartType::Thorax).maxHp << " | "
-              << "Arm: "    << bodyParts.at(BodyPartType::Arm).hp    << "/" << bodyParts.at(BodyPartType::Arm).maxHp    << " | "
+    std::cout << "\n=== You Status ===\n";
+    std::cout << "Head: "   << bodyParts.at(BodyPartType::Head).hp   << "/" << bodyParts.at(BodyPartType::Head).maxHp   << "  |  "
+              << "Thorax: " << bodyParts.at(BodyPartType::Thorax).hp << "/" << bodyParts.at(BodyPartType::Thorax).maxHp << "  |  "
+              << "Arm: "    << bodyParts.at(BodyPartType::Arm).hp    << "/" << bodyParts.at(BodyPartType::Arm).maxHp    << "  |  "
               << "Leg: "    << bodyParts.at(BodyPartType::Leg).hp    << "/" << bodyParts.at(BodyPartType::Leg).maxHp    << "\n";
+
     std::cout << "Weapon: "
               << (weapon ? weapon->getName() : "None")
               << " [" << (weapon ? std::to_string(weapon->getAmmo()) + "/"
                                 + std::to_string(weapon->getMaxAmmo())
-                                : "N/A") << "]\n";
-    std::cout << (inCover ? "Behind Cover" : "Exposed")
-              << " | Distance: "
+                                : "N/A") << "]  |  "
+              << "Distance: "
               << (distance == Distance::Close  ? "Close"
                  : distance == Distance::Medium ? "Medium"
                                                 : "Far")
+              << "  |  "
+              << (inCover ? "Cover: Behind Cover" : "Cover: Exposed")
               << "\n========================\n";
 }
 
@@ -294,48 +281,58 @@ bool CombatManager::allEnemiesDead(const std::vector<std::shared_ptr<Enemy>>& en
     return true;
 }
 
-void CombatManager::displayCombatants(PlayerCombatant& player,
-                                      const std::vector<std::shared_ptr<Enemy>>& enemies) const
-{
-    // Display player status first (horizontal HP, cover state, distance)
+void CombatManager::displayCombatants(
+    PlayerCombatant& player,
+    const std::vector<std::shared_ptr<Enemy>>& enemies
+) const {
+    // Show player status
     player.displayStatus();
 
-    // Display each enemy on one line, with horizontal HP
+    // Show all enemies with their Head/Thorax/Arm/Leg HP
     std::cout << "\n=== Enemies ===\n";
     for (size_t i = 0; i < enemies.size(); ++i) {
         auto& e = enemies[i];
         if (e->isDead()) {
-            std::cout << i << ": " << e->getName() << " [DEAD]\n";
+            std::cout << i << ": " << e->getName() << "  |  Dead\n";
         } else {
-            std::cout << i << ": " << e->getName()
-                      << " | Head: "   << e->getHp(BodyPartType::Head)   << "/" << e->bodyParts.at(BodyPartType::Head).maxHp
-                      << " | Th: "     << e->getHp(BodyPartType::Thorax) << "/" << e->bodyParts.at(BodyPartType::Thorax).maxHp
-                      << " | A: "      << e->getHp(BodyPartType::Arm)    << "/" << e->bodyParts.at(BodyPartType::Arm).maxHp
-                      << " | L: "      << e->getHp(BodyPartType::Leg)    << "/" << e->bodyParts.at(BodyPartType::Leg).maxHp
-                      << (e->isInCover() ? " | Behind Cover" : " | Exposed")
-                      << " | Dist: "   << (e->distance == Distance::Close  ? "C"
-                                     : e->distance == Distance::Medium ? "M" : "F")
-                      << "\n";
+            int headHp   = e->bodyParts.at(BodyPartType::Head).hp;
+            int headMax  = e->bodyParts.at(BodyPartType::Head).maxHp;
+            int thorHp   = e->bodyParts.at(BodyPartType::Thorax).hp;
+            int thorMax  = e->bodyParts.at(BodyPartType::Thorax).maxHp;
+            int armHp    = e->bodyParts.at(BodyPartType::Arm).hp;
+            int armMax   = e->bodyParts.at(BodyPartType::Arm).maxHp;
+            int legHp    = e->bodyParts.at(BodyPartType::Leg).hp;
+            int legMax   = e->bodyParts.at(BodyPartType::Leg).maxHp;
+
+            std::cout << i << ": " << e->getName() << "  |  "
+                      << "Head: " << headHp   << "/" << headMax   << "  |  "
+                      << "Th: "   << thorHp   << "/" << thorMax   << "  |  "
+                      << "A: "    << armHp    << "/" << armMax    << "  |  "
+                      << "L: "    << legHp    << "/" << legMax    << "\n";
         }
     }
     std::cout << "===============\n";
 }
 
-bool CombatManager::engage(PlayerCombatant& player,
-                           std::vector<std::shared_ptr<Enemy>>& enemies)
-{
-    std::cout << "\n--- Combat Start! ---\n";
-    // Start at Far distance
+bool CombatManager::engage(
+    PlayerCombatant& player,
+    std::vector<std::shared_ptr<Enemy>>& enemies
+) {
+    // Create a non‐owning shared_ptr to the real player so enemies can damage it directly
+    std::shared_ptr<Combatant> pPtr(&player, [](Combatant*) {});
+    this->playerPtr = pPtr;
+
     currentDistance = Distance::Far;
     player.inCover = false;
     player.distance = currentDistance;
-    for (auto& e : enemies) {
-        e->inCover = false;
-        e->distance = currentDistance;
-    }
+
+    // At the very start, show the initial UI:
+    displayCombatants(player, enemies);
 
     while (true) {
+        // 1) Player’s turn
         if (!playerTurn(player, enemies)) {
+            // If player fled or died, just return false/true and let caller print once
             return !player.isDead();
         }
         if (allEnemiesDead(enemies)) {
@@ -343,44 +340,48 @@ bool CombatManager::engage(PlayerCombatant& player,
             return true;
         }
 
+        // 2) Enemy’s turn
         if (!enemiesTurn(player, enemies)) {
+            // Player died; do NOT print “You have been killed…” here.
             return false;
         }
         if (allEnemiesDead(enemies)) {
             std::cout << "\nAll enemies are down. You survived!\n";
             return true;
         }
-        if (player.isDead()) {
-            std::cout << "\nYou have been killed in combat.\n";
-            return false;
-        }
+
+        // 3) After both sides acted, show updated UI
+        displayCombatants(player, enemies);
     }
 }
 
-bool CombatManager::playerTurn(PlayerCombatant& player,
-                               std::vector<std::shared_ptr<Enemy>>& enemies)
-{
+bool CombatManager::playerTurn(
+    PlayerCombatant& player,
+    std::vector<std::shared_ptr<Enemy>>& enemies
+) {
     player.tick();
-    displayCombatants(player, enemies);
     return promptPlayerAction(player, enemies);
 }
 
-bool CombatManager::enemiesTurn(PlayerCombatant& player,
-                                const std::vector<std::shared_ptr<Enemy>>& enemies)
-{
+bool CombatManager::enemiesTurn(
+    PlayerCombatant& player,
+    const std::vector<std::shared_ptr<Enemy>>& enemies
+) {
     for (auto& e : enemies) {
         if (e->isDead()) continue;
         e->tick();
-        // Use a shared_ptr to wrap the existing PlayerCombatant for targeting
-        e->decideAction(std::make_shared<PlayerCombatant>(player));
-        if (player.isDead()) return false;
+        e->decideAction(this->playerPtr);
+        if (player.isDead()) {
+            return false;
+        }
     }
     return true;
 }
 
-bool CombatManager::promptPlayerAction(PlayerCombatant& player,
-                                       std::vector<std::shared_ptr<Enemy>>& enemies)
-{
+bool CombatManager::promptPlayerAction(
+    PlayerCombatant& player,
+    std::vector<std::shared_ptr<Enemy>>& enemies
+) {
     std::cout << "\nChoose an action:\n";
     std::cout << " 1) Move Closer   2) Move Further   3) Take Cover\n";
     std::cout << " 4) Shoot         5) Reload         6) Flee\n";
@@ -392,20 +393,14 @@ bool CombatManager::promptPlayerAction(PlayerCombatant& player,
     if (cmd == "1" || cmd == "move closer") {
         bool wasInCover = player.isInCover();
         if (currentDistance != Distance::Close) {
-            // Decrease universal distance
             currentDistance = static_cast<Distance>(static_cast<int>(currentDistance) - 1);
-            // Moving breaks cover if you were behind cover
+            player.distance = currentDistance;
             if (wasInCover) {
                 player.breakCover();
                 std::cout << "You move closer and drop out of cover. You are now Exposed.\n";
             } else {
                 std::cout << "You move closer.\n";
             }
-            for (auto& e : enemies) {
-                e->inCover = false;
-                e->distance = currentDistance;
-            }
-            player.distance = currentDistance;
         } else {
             std::cout << "You are already at the closest range.\n";
         }
@@ -414,20 +409,14 @@ bool CombatManager::promptPlayerAction(PlayerCombatant& player,
     if (cmd == "2" || cmd == "move further") {
         bool wasInCover = player.isInCover();
         if (currentDistance != Distance::Far) {
-            // Increase universal distance
             currentDistance = static_cast<Distance>(static_cast<int>(currentDistance) + 1);
-            // Moving breaks cover if you were behind cover
+            player.distance = currentDistance;
             if (wasInCover) {
                 player.breakCover();
                 std::cout << "You move farther and drop out of cover. You are now Exposed.\n";
             } else {
                 std::cout << "You move farther.\n";
             }
-            for (auto& e : enemies) {
-                e->inCover = false;
-                e->distance = currentDistance;
-            }
-            player.distance = currentDistance;
         } else {
             std::cout << "You are already at the farthest range.\n";
         }
@@ -442,20 +431,40 @@ bool CombatManager::promptPlayerAction(PlayerCombatant& player,
         }
         return true;
     }
-    if (cmd == "4" || cmd.rfind("shoot", 0) == 0) {
+    if (cmd.rfind("shoot", 0) == 0) {
         std::istringstream iss(cmd);
-        std::string word;
-        iss >> word; // "shoot"
-        int idx;
+        std::vector<std::string> tokens;
+        std::string tok;
+        while (iss >> tok) {
+            tokens.push_back(tok);
+        }
+
+        int idx = 0;
         std::string partStr;
-        if (!(iss >> idx >> partStr)) {
-            std::cout << "Usage: shoot <enemyIndex> <head|thorax|arm|leg>\n";
+
+        if (tokens.size() == 2) {
+            partStr = tokens[1];
+            if (enemies.size() > 1) {
+                std::cout << "Multiple enemies present—use: shoot <enemyIndex> <bodyPart>\n";
+                return true;
+            }
+        } else if (tokens.size() == 3) {
+            try {
+                idx = std::stoi(tokens[1]);
+            } catch (...) {
+                std::cout << "Invalid index.\n";
+                return true;
+            }
+            partStr = tokens[2];
+            if (idx < 0 || idx >= static_cast<int>(enemies.size()) || enemies[idx]->isDead()) {
+                std::cout << "Invalid enemy index.\n";
+                return true;
+            }
+        } else {
+            std::cout << "Usage: shoot <part>    OR    shoot <enemyIndex> <part>\n";
             return true;
         }
-        if (idx < 0 || idx >= static_cast<int>(enemies.size()) || enemies[idx]->isDead()) {
-            std::cout << "Invalid enemy index.\n";
-            return true;
-        }
+
         BodyPartType targetPart = parseBodyPart(partStr);
         auto enemyPtr = enemies[idx];
         if (!player.shootAt(enemyPtr, targetPart)) {
@@ -469,9 +478,9 @@ bool CombatManager::promptPlayerAction(PlayerCombatant& player,
     }
     if (cmd == "6" || cmd == "flee") {
         if (player.attemptFlee()) {
-            return false; // player successfully fled → exit combat
+            return false; // exit combat loop (you fled)
         }
-        return true;  // still fighting
+        return true;
     }
 
     std::cout << "Unknown command. Try again.\n";

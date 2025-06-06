@@ -148,6 +148,9 @@ private:
 
     // Distance is universal between player and all enemies:
     Distance currentDistance;
+
+    // We keep a shared_ptr to the real player so enemies can damage it directly:
+    std::shared_ptr<Combatant> playerPtr;
 };
 
 #endif // ZOORK_COMBAT_H
