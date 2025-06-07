@@ -1,13 +1,13 @@
-//ZOOrkEngine.h
+// File: ZOOrkEngine.h
+
 #ifndef ZOORKENGINE_H
 #define ZOORKENGINE_H
 
 #include "Room.h"
 #include "Player.h"
+#include <map>
 #include <string>
 #include <vector>
-#include <map>
-#include <memory>
 
 class ZOOrkEngine {
 public:
@@ -16,21 +16,20 @@ public:
     void run();
 
 private:
-    // Note: all handler methods now take 'const std::vector<std::string>&' to match the .cpp
-    void handleGoCommand(const std::vector<std::string>&);
-    void handleLookCommand(const std::vector<std::string>&);
-    void handleSearchCommand(const std::vector<std::string>&);
-    void handleTakeCommand(const std::vector<std::string>&);
-    void handleDropCommand(const std::vector<std::string>&);
+    void handleGoCommand(const std::vector<std::string>& arguments);
+    void handleLookCommand(const std::vector<std::string>& arguments);
+    void handleSearchCommand(const std::vector<std::string>& arguments);
+    void handleTakeCommand(const std::vector<std::string>& arguments);
+    void handleDropCommand(const std::vector<std::string>& arguments);
     void handleInventoryCommand();
     void handleHelpCommand();
-    void handleQuitCommand(const std::vector<std::string>&);
+    void handleQuitCommand(const std::vector<std::string>& arguments);
 
-    std::vector<std::string> tokenizeString(const std::string&);
-    std::string makeLowercase(std::string);
+    std::vector<std::string> tokenizeString(const std::string& input);
+    std::string makeLowercase(std::string input);
 
-    Player* player;
     std::map<std::string, std::shared_ptr<Room>> roomMap;
+    Player* player = nullptr;
     bool gameOver = false;
     bool firstArrivalToZoo = true;
 };

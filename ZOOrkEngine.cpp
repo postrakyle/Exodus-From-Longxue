@@ -1,4 +1,4 @@
-// File: ZOOrkEngine.cpp
+// ZOOrkEngine.cpp
 
 #include "ZOOrkEngine.h"
 #include "Passage.h"
@@ -11,6 +11,7 @@
 #include <sstream>
 #include <limits>
 #include <iostream>
+#include <cctype>  // for std::toupper
 
 ZOOrkEngine::ZOOrkEngine(std::shared_ptr<Room> start) {
     player = Player::instance();
@@ -43,13 +44,13 @@ void ZOOrkEngine::run() {
         if (command == "go" || command == "goto" || command == "move") {
             handleGoCommand(arguments);
         }
-        else if ((command == "look") || (command == "inspect")) {
+        else if (command == "look" || command == "inspect") {
             handleLookCommand(arguments);
         }
         else if (command == "search") {
             handleSearchCommand(arguments);
         }
-        else if ((command == "take") || (command == "get")) {
+        else if (command == "take" || command == "get") {
             handleTakeCommand(arguments);
         }
         else if (command == "drop") {
@@ -85,62 +86,90 @@ void ZOOrkEngine::handleGoCommand(const std::vector<std::string>& arguments) {
     for (const auto& kv : currentRoom->getAllExits()) {
         Room* dest = kv.second->getTo();
         std::string destNameLower = makeLowercase(dest->getName());
+
         if (destNameLower == targetLower) {
+            // When entering The Lab from any entrance...
+            if (destNameLower == "the lab") {
+                if (!player->hasKeycard("Lab Keycard")) {
+                    std::cout << "Access Denied. Lab Keycard required.\n";
+                    return;
+                }
+                // consume the card
+                player->dropItem("Lab Keycard");
+                std::cout << "You swipe the Lab Keycard. The door slides open; there is no turning back.\n";
+                // lock out the two main entrances
+                dest->removePassage("Lab North Entrance");
+                dest->removePassage("Lab Underground Entrance");
+                // (Lab Courtyard exit remains)
+
+                dest->enter();
+                std::cout << "\nInside the Lab you see three consoles:\n"
+                          << "1) Console A - Red Glyph\n"
+                          << "2) Console B - Blue Glyph\n"
+                          << "3) Console C - Green Glyph\n"
+                          << "Choose an option (1-3): ";
+                int choice;
+                std::cin >> choice;
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
+                switch (choice) {
+                    case 1:
+                        std::cout << "[ENDING A placeholder]\n";
+                        exit(0);
+                    case 2:
+                        std::cout << "[ENDING B placeholder]\n";
+                        exit(0);
+                    case 3:
+                        if (!player->hasKeycard("Overwrite Card")) {
+                            std::cout << "Access Denied. You need the Overwrite Card to unlock the final ending.\n";
+                            return;
+                        } else {
+                            player->dropItem("Overwrite Card");
+                            std::cout << "[FINAL ENDING placeholder]\n";
+                            exit(0);
+                        }
+                    default:
+                        std::cout << "Invalid choice. The Lab powers down.\n";
+                        exit(0);
+                }
+            }
+
+            // Normal move
             player->setCurrentRoom(dest);
             dest->enter();
-
             std::cout << "\nExits:\n";
             for (const auto& exitPair : dest->getAllExits()) {
                 std::cout << "  - " << exitPair.second->getTo()->getName() << "\n";
             }
 
-            // ─────────────────────────────────────────────────────────────
-            // If we just entered the Zoo for the first time, trigger combat:
-            // ─────────────────────────────────────────────────────────────
+            // Zoo combat as before...
             if (dest->getName() == "Zoo" && firstArrivalToZoo) {
                 firstArrivalToZoo = false;
-
                 std::cout << "\nAs you approach the abandoned zoo, a scavenger emerges from a shattered cage!\n\n";
 
-                // 1) Build a PlayerCombatant from the existing Player
                 auto playerCombatant = std::make_shared<PlayerCombatant>("You");
-
-                // If the Player’s inventory contains a “Rifle” item, equip that weapon:
                 auto rifleItem = player->getInventoryItem("Rifle");
                 if (rifleItem && rifleItem->getWeapon()) {
                     playerCombatant->equipWeapon(rifleItem->getWeapon());
                 } else {
-                    // Otherwise default to pistol
                     playerCombatant->equipWeapon(WeaponFactory::createWeapon(WeaponType::Pistol));
                 }
 
-                // 2) Create a single Scav enemy
                 std::vector<std::shared_ptr<Enemy>> foes;
-                auto scav = std::make_shared<Enemy>(EnemyType::Scav);
-                foes.push_back(scav);
+                foes.push_back(std::make_shared<Enemy>(EnemyType::Scav));
 
-                // 3) Engage
                 CombatManager cm;
-                bool playerSurvived = cm.engage(*playerCombatant, foes);
+                bool survived = cm.engage(*playerCombatant, foes);
 
-                if (!playerSurvived) {
+                if (!survived) {
                     std::cout << "\nYou have been killed in combat. Game Over.\n";
                     exit(0);
                 } else {
                     std::cout << "\nYou emerge victorious from the abandoned cages. The scavenger lies still.\n";
-
-                    // Drop a “Pistol” item into the Zoo for the player to pick up
                     Room* zooRoom = dest;
-                    auto pistolItem = std::make_shared<Item>(
-                        "Pistol",
-                        "A scavenger’s dropped 9mm pistol lies here.",
-                        WeaponFactory::createWeapon(WeaponType::Pistol)
-                    );
                     zooRoom->addLookable("dropped pistol", "A scavenger’s pistol lies on the ground.");
                     zooRoom->addSearchable("dropped pistol", "You pick up the dropped Pistol.");
 
-                    // ──────────────────────────────────────────────────────────
-                    // NOW: re‐introduce the room’s description & exits
                     std::cout << "\nAs the echoes of gunfire fade, you find yourself back in "
                               << dest->getName() << ".\n\n";
                     dest->enter();
@@ -148,13 +177,13 @@ void ZOOrkEngine::handleGoCommand(const std::vector<std::string>& arguments) {
                     for (const auto& kv2 : dest->getAllExits()) {
                         std::cout << "  - " << kv2.second->getTo()->getName() << "\n";
                     }
-                    // ──────────────────────────────────────────────────────────
                 }
             }
 
             return;
         }
     }
+
     std::cout << "You can't go to \"" << target << "\" from here.\n";
 }
 
@@ -166,8 +195,7 @@ void ZOOrkEngine::handleLookCommand(const std::vector<std::string>& arguments) {
         for (const auto& kv : currentRoom->getAllExits()) {
             std::cout << "  - " << kv.second->getTo()->getName() << "\n";
         }
-    }
-    else {
+    } else {
         std::string target;
         for (size_t i = 0; i < arguments.size(); ++i) {
             if (i > 0) target += " ";
@@ -196,7 +224,6 @@ void ZOOrkEngine::handleSearchCommand(const std::vector<std::string>& arguments)
     if (currentRoom->isSearchable(target)) {
         std::cout << currentRoom->getSearchDescription(target) << "\n";
 
-        // Spawn tangible items after searching, if not already created:
         if (target == "rifle case") {
             auto rifle = WeaponFactory::createWeapon(WeaponType::Rifle);
             currentRoom->addLookable("rifle",   "A sturdy assault rifle leans against the seat.");
@@ -208,16 +235,20 @@ void ZOOrkEngine::handleSearchCommand(const std::vector<std::string>& arguments)
             currentRoom->addSearchable("shotgun", "You pick up the Shotgun. Damage: 60.");
         }
         else if (target == "tv rack") {
-            auto keycard = std::make_shared<Item>(
-                "Lab Keycard",
-                "A Level-2 lab keycard.",
-                ItemType::Keycard
-            );
-            currentRoom->addLookable("lab keycard",   "A Level-2 lab keycard glints on the counter.");
-            currentRoom->addSearchable("lab keycard","You pick up the Lab Keycard. Can open the lab.");
+            currentRoom->addLookable("lab keycard",   "A Lab Keycard glints on the counter.");
+            currentRoom->addSearchable("lab keycard","You pick up the Lab Keycard; you can now access all Lab entrances.");
         }
-    }
-    else {
+        else if (target == "dead body") {
+            currentRoom->addLookable(
+                "overwrite card",
+                "A sleek Overwrite Card stamped with the Longxue BioTech seal gleams here."
+            );
+            currentRoom->addSearchable(
+                "overwrite card",
+                "You pick up the Overwrite Card."
+            );
+        }
+    } else {
         std::cout << "You find nothing interesting when searching \"" << target << "\".\n";
     }
 }
@@ -238,19 +269,19 @@ void ZOOrkEngine::handleTakeCommand(const std::vector<std::string>& arguments) {
         std::string properName;
         ItemType type;
 
-        if (target == "rifle") {
-            properName = "Rifle";
+        if (target == "rifle" || target == "shotgun" || target == "pistol") {
+            properName = std::string(1, static_cast<char>(std::toupper(target[0]))) + target.substr(1);
             type = ItemType::Weapon;
-        } else if (target == "shotgun") {
-            properName = "Shotgun";
-            type = ItemType::Weapon;
-        } else if (target == "lab keycard") {
+        }
+        else if (target == "lab keycard") {
             properName = "Lab Keycard";
             type = ItemType::Keycard;
-        } else if (target == "dropped pistol") {
-            properName = "Pistol";
-            type = ItemType::Weapon;
-        } else {
+        }
+        else if (target == "overwrite card") {
+            properName = "Overwrite Card";
+            type = ItemType::Keycard;
+        }
+        else {
             std::cout << "You can't pick that up.\n";
             return;
         }
@@ -258,7 +289,7 @@ void ZOOrkEngine::handleTakeCommand(const std::vector<std::string>& arguments) {
         std::shared_ptr<Item> newItem;
         if (type == ItemType::Weapon) {
             WeaponType wtype = WeaponType::Pistol;
-            if (properName == "Rifle")       wtype = WeaponType::Rifle;
+            if (properName == "Rifle")        wtype = WeaponType::Rifle;
             else if (properName == "Shotgun") wtype = WeaponType::Shotgun;
             else if (properName == "Pistol")  wtype = WeaponType::Pistol;
 
@@ -270,7 +301,7 @@ void ZOOrkEngine::handleTakeCommand(const std::vector<std::string>& arguments) {
         } else {
             newItem = std::make_shared<Item>(
                 properName,
-                "A Level-2 lab keycard.",
+                "A Keycard stamped with the Longxue BioTech seal.",
                 ItemType::Keycard
             );
         }
@@ -278,8 +309,7 @@ void ZOOrkEngine::handleTakeCommand(const std::vector<std::string>& arguments) {
         if (player->pickUpItem(newItem)) {
             std::cout << "Picked up: " << properName << "\n";
         }
-    }
-    else {
+    } else {
         std::cout << "There is no \"" << target << "\" here to take.\n";
     }
 }
