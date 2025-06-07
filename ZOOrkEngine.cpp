@@ -1,6 +1,7 @@
-// ZOOrkEngine.cpp
+// File: ZOOrkEngine.cpp
 
 #include "ZOOrkEngine.h"
+#include "EnemyTypes.h"
 #include "Passage.h"
 #include "Room.h"
 #include "Item.h"
@@ -35,7 +36,7 @@ void ZOOrkEngine::run() {
         std::cout << "\n> ";
         std::string input;
         std::getline(std::cin, input);
-        std::vector<std::string> words = tokenizeString(input);
+        auto words = tokenizeString(input);
         if (words.empty()) continue;
 
         std::string command = words[0];
@@ -66,74 +67,91 @@ void ZOOrkEngine::run() {
             handleQuitCommand(arguments);
         }
         else {
-            // Unrecognized input defaults to “look”
+            // Unrecognized input defaults to look
             handleLookCommand(words);
         }
     }
 }
 
 void ZOOrkEngine::handleGoCommand(const std::vector<std::string>& arguments) {
-    if (arguments.empty()) return;
+    if (arguments.empty()) {
+        std::cout << "Go where?\n";
+        return;
+    }
+
+    // Reconstruct the target room name
     std::string target;
     for (size_t i = 0; i < arguments.size(); ++i) {
         if (i > 0) target += " ";
         target += arguments[i];
     }
-
-    Room* currentRoom = player->getCurrentRoom();
     std::string targetLower = makeLowercase(target);
 
+    Room* currentRoom = player->getCurrentRoom();
+    bool moved = false;
+
+    // Try each exit
     for (const auto& kv : currentRoom->getAllExits()) {
         Room* dest = kv.second->getTo();
         std::string destNameLower = makeLowercase(dest->getName());
 
         if (destNameLower == targetLower) {
-            // When entering The Lab from any entrance...
+            moved = true;
+
             if (destNameLower == "the lab") {
                 if (!player->hasKeycard("Lab Keycard")) {
                     std::cout << "Access Denied. Lab Keycard required.\n";
                     return;
                 }
-                // consume the card
                 player->dropItem("Lab Keycard");
-                std::cout << "You swipe the Lab Keycard. The door slides open; there is no turning back.\n";
-                // lock out the two main entrances
-                dest->removePassage("Lab North Entrance");
-                dest->removePassage("Lab Underground Entrance");
-                // (Lab Courtyard exit remains)
+                std::cout << "The door seals behind you with a deafening thud.\n"
+                            "A cold, mechanical voice crackles over the speakers:\n\n"
+                            "\"Congratulations, soldier. Through skill and sacrifice you have proven yourself worthy of the gift of immortality.\n"
+                            "The very government you served has traded you to Kiriko as a pawn in their grand design.\n"
+                            "Now you stand at a crossroads:\n\n"
+                            "1) Upload your mind into the network live forever as data, a ghost in their machine.\n"
+                            "2) Use the Overwrite Card to open the escape hatch return to flesh and breathe free air once more.\n"
+                            "3) End your life here refuse this cruel destiny.\n\n"
+                            "Enter 1, 2, or 3: \"";
 
-                dest->enter();
-                std::cout << "\nInside the Lab you see three consoles:\n"
-                          << "1) Console A - Red Glyph\n"
-                          << "2) Console B - Blue Glyph\n"
-                          << "3) Console C - Green Glyph\n"
-                          << "Choose an option (1-3): ";
                 int choice;
-                std::cin >> choice;
-                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                while (true) {
+                    std::cin >> choice;
+                    if (choice >= 1 && choice <= 3) {
+                        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                        std::cout << "\n";
+                        break;
+                    }
+                    std::cin.clear();
+                    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    std::cout << "Invalid choice. Enter 1, 2, or 3: ";
+                }
 
                 switch (choice) {
                     case 1:
-                        std::cout << "[ENDING A placeholder]\n";
-                        exit(0);
+                        std::cout << "You press the neural uplink button. Pain like a furnace burns your mind as data streams away.\n"
+                                     "Your body collapses. Your consciousness remains trapped in code, immortal but imprisoned.\n";
+                        break;
+
                     case 2:
-                        std::cout << "[ENDING B placeholder]\n";
-                        exit(0);
-                    case 3:
                         if (!player->hasKeycard("Overwrite Card")) {
-                            std::cout << "Access Denied. You need the Overwrite Card to unlock the final ending.\n";
-                            return;
+                            std::cout << "You slam your hand on the console, but without the Overwrite Card nothing happens.\n"
+                                         "The chamber hums as life support cuts off. You gasp and choke in the failing air.\n";
                         } else {
                             player->dropItem("Overwrite Card");
-                            std::cout << "[FINAL ENDING placeholder]\n";
-                            exit(0);
+                            std::cout << "You slide the Overwrite Card into the slot. The hatch snaps open.\n"
+                                         "You crawl through to freedom, lungs burning with cold night air. You're alive for now.\n";
                         }
-                    default:
-                        std::cout << "Invalid choice. The Lab powers down.\n";
-                        exit(0);
-                }
-            }
+                        break;
 
+                    case 3:
+                        std::cout << "You raise your weapon to your head. No words, no struggle just a single shot. Everything goes black.\n";
+                        break;
+                }
+
+                std::cout << "\n=== END OF LINE ===\n";
+                std::exit(0);
+            }
             // Normal move
             player->setCurrentRoom(dest);
             dest->enter();
@@ -142,10 +160,10 @@ void ZOOrkEngine::handleGoCommand(const std::vector<std::string>& arguments) {
                 std::cout << "  - " << exitPair.second->getTo()->getName() << "\n";
             }
 
-            // Zoo combat as before...
+            // --- Zoo combat on first arrival ---
             if (dest->getName() == "Zoo" && firstArrivalToZoo) {
                 firstArrivalToZoo = false;
-                std::cout << "\nAs you approach the abandoned zoo, a scavenger emerges from a shattered cage!\n\n";
+                std::cout << "\nAs you approach the empty pits of the abandoned zoo, a scavenger emerges from the shadows!\n\n";
 
                 auto playerCombatant = std::make_shared<PlayerCombatant>("You");
                 auto rifleItem = player->getInventoryItem("Rifle");
@@ -159,32 +177,134 @@ void ZOOrkEngine::handleGoCommand(const std::vector<std::string>& arguments) {
                 foes.push_back(std::make_shared<Enemy>(EnemyType::Scav));
 
                 CombatManager cm;
-                bool survived = cm.engage(*playerCombatant, foes);
-
-                if (!survived) {
+                if (!cm.engage(*playerCombatant, foes)) {
                     std::cout << "\nYou have been killed in combat. Game Over.\n";
-                    exit(0);
-                } else {
-                    std::cout << "\nYou emerge victorious from the abandoned cages. The scavenger lies still.\n";
-                    Room* zooRoom = dest;
-                    zooRoom->addLookable("dropped pistol", "A scavenger’s pistol lies on the ground.");
-                    zooRoom->addSearchable("dropped pistol", "You pick up the dropped Pistol.");
-
-                    std::cout << "\nAs the echoes of gunfire fade, you find yourself back in "
-                              << dest->getName() << ".\n\n";
-                    dest->enter();
-                    std::cout << "\nExits:\n";
-                    for (const auto& kv2 : dest->getAllExits()) {
-                        std::cout << "  - " << kv2.second->getTo()->getName() << "\n";
-                    }
+                    std::exit(0);
                 }
+
+                std::cout << "\nThe scavenger lies still.\n";
+                dest->addLookable("dropped pistol", "A scavenger's pistol lies on the ground.");
+                dest->addSearchable("dropped pistol", "You pick up the dropped Pistol.");
+                std::cout << "\nReentering " << dest->getName() << "...\n\n";
+                dest->enter();
+                std::cout << "\nExits:\n";
+                for (auto& kv2 : dest->getAllExits())
+                    std::cout << "  - " << kv2.second->getTo()->getName() << "\n";
             }
 
-            return;
+            // --- Lab North Entrance combat on first arrival ---
+            if (dest->getName() == "Lab North Entrance" && firstArrivalToLabNorth) {
+                firstArrivalToLabNorth = false;
+                std::cout << "\nA Japanese PMC squad blocks the Lab North Entrance!\n\n";
+
+                auto playerCombatant = std::make_shared<PlayerCombatant>("You");
+                auto rifleItem = player->getInventoryItem("Rifle");
+                if (rifleItem && rifleItem->getWeapon()) {
+                    playerCombatant->equipWeapon(rifleItem->getWeapon());
+                } else {
+                    playerCombatant->equipWeapon(WeaponFactory::createWeapon(WeaponType::Pistol));
+                }
+
+                std::vector<std::shared_ptr<Enemy>> foes;
+                foes.push_back(std::make_shared<Enemy>(EnemyType::PMC_Japanese));
+
+                CombatManager cm;
+                if (!cm.engage(*playerCombatant, foes)) {
+                    std::cout << "\nYou have been killed by the Japanese PMC squad. Game Over.\n";
+                    std::exit(0);
+                }
+
+                std::cout << "\nThe PMC soldier falls.\n";
+                dest->addLookable("dropped ammo box", "An ammo box stamped with PMC Japanese lies cracked open.");
+                dest->addSearchable("dropped ammo box", "You pick up some usable rounds.");
+                std::cout << "\nReentering " << dest->getName() << "...\n\n";
+                dest->enter();
+                std::cout << "\nExits:\n";
+                for (auto& kv2 : dest->getAllExits())
+                    std::cout << "  - " << kv2.second->getTo()->getName() << "\n";
+            }
+
+            // --- Lab Underground Entrance combat on first arrival ---
+            if (dest->getName() == "Lab Underground Entrance" && firstArrivalToLabUnderground) {
+                firstArrivalToLabUnderground = false;
+                std::cout << "\nAs you pry open the bioluminescent door to the underground labs, alarms echo in the corridors!\n\n";
+
+                auto playerCombatant = std::make_shared<PlayerCombatant>("You");
+                auto rifleItem = player->getInventoryItem("Rifle");
+                if (rifleItem && rifleItem->getWeapon()) {
+                    playerCombatant->equipWeapon(rifleItem->getWeapon());
+                } else {
+                    playerCombatant->equipWeapon(WeaponFactory::createWeapon(WeaponType::Pistol));
+                }
+
+                std::vector<std::shared_ptr<Enemy>> foes;
+                foes.push_back(std::make_shared<Enemy>(EnemyType::PMC_Japanese));
+
+                CombatManager cm;
+                if (!cm.engage(*playerCombatant, foes)) {
+                    std::cout << "\nYou have been killed by the Japanese PMC guard. Game Over.\n";
+                    std::exit(0);
+                }
+
+                std::cout << "\nThe PMC guard collapses to the floor.\n";
+                dest->addLookable(
+                    "dropped keycard",
+                    "A Japanese PMC keycard lies on the floor, its chip still warm."
+                );
+                dest->addSearchable(
+                    "dropped keycard",
+                    "You pick up the dropped Lab Keycard."
+                );
+                std::cout << "\nReentering " << dest->getName() << "...\n\n";
+                dest->enter();
+                std::cout << "\nExits:\n";
+                for (auto& kv2 : dest->getAllExits())
+                    std::cout << "  - " << kv2.second->getTo()->getName() << "\n";
+            }
+
+            // --- Lab Courtyard combat on first arrival ---
+            if (dest->getName() == "Lab Courtyard" && firstArrivalToLabCourtyard) {
+                firstArrivalToLabCourtyard = false;
+                std::cout << "\nStepping into the overgrown courtyard, a Japanese PMC soldier emerges from cover!\n\n";
+
+                auto playerCombatant = std::make_shared<PlayerCombatant>("You");
+                auto rifleItem = player->getInventoryItem("Rifle");
+                if (rifleItem && rifleItem->getWeapon()) {
+                    playerCombatant->equipWeapon(rifleItem->getWeapon());
+                } else {
+                    playerCombatant->equipWeapon(WeaponFactory::createWeapon(WeaponType::Pistol));
+                }
+
+                std::vector<std::shared_ptr<Enemy>> foes;
+                foes.push_back(std::make_shared<Enemy>(EnemyType::PMC_Japanese));
+
+                CombatManager cm;
+                if (!cm.engage(*playerCombatant, foes)) {
+                    std::cout << "\nThe PMC soldier overpowers you. Game Over.\n";
+                    std::exit(0);
+                }
+
+                std::cout << "\nThe PMC soldier collapses.\n";
+                dest->addLookable(
+                    "dropped rifle",
+                    "A Japanese PMC rifle lies abandoned in the mud."
+                );
+                dest->addSearchable(
+                    "dropped rifle",
+                    "You pick up the dropped Rifle."
+                );
+                std::cout << "\nReentering " << dest->getName() << "...\n\n";
+                dest->enter();
+                std::cout << "\nExits:\n";
+                for (auto& kv2 : dest->getAllExits())
+                    std::cout << "  - " << kv2.second->getTo()->getName() << "\n";
+            }
         }
     }
 
-    std::cout << "You can't go to \"" << target << "\" from here.\n";
+    if (!moved) {
+        std::cout << "You can't go to \"" << target << "\" from here.\n";
+    }
 }
 
 void ZOOrkEngine::handleLookCommand(const std::vector<std::string>& arguments) {
@@ -208,6 +328,8 @@ void ZOOrkEngine::handleLookCommand(const std::vector<std::string>& arguments) {
         }
     }
 }
+
+
 
 void ZOOrkEngine::handleSearchCommand(const std::vector<std::string>& arguments) {
     if (arguments.empty()) {
@@ -355,14 +477,12 @@ void ZOOrkEngine::handleHelpCommand() {
     std::cout << "  help                 - Show this help text\n";
     std::cout << "  quit                 - Exit the game\n";
 }
-
 void ZOOrkEngine::handleQuitCommand(const std::vector<std::string>&) {
     std::string input;
     std::cout << "Are you sure you want to QUIT? (y/n)\n> ";
     std::cin >> input;
     std::string quitStr = makeLowercase(input);
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-
     if (quitStr == "y" || quitStr == "yes") {
         gameOver = true;
     }

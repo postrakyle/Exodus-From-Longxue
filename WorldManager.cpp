@@ -15,355 +15,370 @@ void WorldManager::createRooms() {
     
     // Back Streets
     ADD_ROOM("Back Streets",
-        "Ash drifts through cracked pavement under shattered streetlights. A battered red car sits half-buried in rubble, faded graffiti stains a nearby wall, and a dead body slumps against the brick. Each holds its own secret."
+        "Ruined storefronts and shattered streetlights line cracked pavement stained with ash and blood.\n"
+        "Flickering neon casts eerie shadows over abandoned debris.\n"
+        "A red car sits battered near a wall, and a lifeless dead body slumps face-down nearby.\n"
+        "This was where a Kiriko aligned Japanese PMC squad attempted a retreat before being bombed by Chinese forces.\n"
+        "Evidence of their failed escape lies in blood smears and a trail of spent casings."
     );
     rooms["Back Streets"]->addLookable(
         "red car",
-        "The red car’s windshield is spiderwebbed from bullet impacts, and its hood bears a crudely carved note: "
-        "\"Ammo stash under engine—take what you need, but leave something behind. -Sergeant Liu.\" "
-        "Perhaps its glove compartment will say more."
+        "The red car's windshield is spiderwebbed with cracks. A note is carved crudely into the hood, barely legible."
     );
     rooms["Back Streets"]->addSearchable(
         "red car",
-        "You open the glove compartment and find a bloodstained note: "
-        "\"PMC convoy spotted near the old bridge at dawn. Civilians fled east. -Corporal Zhang.\""
-    );
-    rooms["Back Streets"]->addLookable(
-        "graffiti",
-        "Faded red paint spells out: \"They came in the night—no warning.\" Beneath it, a torn poster of a smiling family suggests someone tried to hold on to hope."
-    );
-    rooms["Back Streets"]->addSearchable(
-        "graffiti",
-        "Scraping away old paint reveals a folded scrap: "
-        "\"Evacuate to Sector 7—rendezvous at 0400. -Citz. Lian\""
+        "A bloodstained note inside warns of a PMC convoy stationed near the old bridge. Likely Kiriko's last operational unit. No equipment remains inside."
     );
     rooms["Back Streets"]->addLookable(
         "dead body",
-        "A tattered uniform covers a corpse face-down, one hand clutching an Overwrite Card that glints unnaturally."
+        "A face-down dead body clutches a glowing overwrite card. The soldier wore Kiriko's emblem. Part of the escape squad ambushed by flanking Chinese forces."
     );
     rooms["Back Streets"]->addSearchable(
         "dead body",
-        "You search the pockets and pull out the Overwrite Card stamped with the KIRIKO BioTech seal."
+        "The overwrite card bears a Kiriko BioTech seal, still warm. The soldier's other gear has been destroyed by blast damage or looted."
     );
 
     // TV Station
     ADD_ROOM("TV Station",
-        "The TV Station’s facade is blackened by fire. Charred electronics lie scattered, a toppled broadcast desk still emits heat, and broken monitors flicker with static—each a clue waiting to be unearthed."
+        "The TV Station's blackened studio holds scattered burnt equipment and melted cameras.\n"
+        "This is the site of the first bloody encounter between Kiriko's hired PMCs and Chinese forces.\n"
+        "A damaged tv rack stands against a cracked wall.\n"
+        "A scorched broadcast desk holds a spilled cup of coffee and a faded photograph.\n"
+        "Flickering broken monitors hum with static and show ghostly images of the chaos."
     );
     rooms["TV Station"]->addLookable(
         "tv rack",
-        "Ash-coated shelves once held broadcast tapes, now half-melted by the blaze."
+        "The ash covered tv rack once held security tapes, now melted or jammed beyond use."
     );
     rooms["TV Station"]->addSearchable(
         "tv rack",
-        "Inside a melted reel you uncover a Lab Keycard bearing the insignia of Longxue BioTech."
+        "You find the only lab keycard, branded with the Longxue BioTech insignia, Kiriko's cover identity. All other contents are too badly burned to be useful."
     );
     rooms["TV Station"]->addLookable(
         "broadcast desk",
-        "The control panel’s surface is still warm. A photograph lies face-down in a spill of stale coffee."
+        "The broadcast desk's control panel is still faintly warm. A photograph lies face down in a puddle of coffee."
     );
     rooms["TV Station"]->addSearchable(
         "broadcast desk",
-        "Flipping the photograph reveals an anchor smiling beside a flag, scrawled on the back: \"We tried to warn them. -Anchor Wei.\""
+        "On the back of the photograph, a warning is scrawled: \"Do not let the truth reach daylight.\""
     );
     rooms["TV Station"]->addLookable(
         "broken monitors",
-        "Cracked screens display frozen frames of terror. Their frames hide logs beneath."
+        "The broken monitors flicker with static, showing frozen frames of a gunfight."
     );
     rooms["TV Station"]->addSearchable(
         "broken monitors",
-        "Behind one monitor you find a journal entry: \"Day 3: Soldiers stormed the studio. We broadcasted until the last moment. -Producer Chen.\""
+        "A journal page recounts the first wave of violence. Any data has been corrupted or wiped."
     );
 
     // Suburbs
     ADD_ROOM("Suburbs",
-        "Burned-out houses line a silent street. Three abandoned cars rust in driveways, a child’s backpack lies open on a seat, and a torn American flag flutters from a mailbox—each a remnant of normal life."
+        "Burned out houses line a silent street in the outer suburbs.\n"
+        "Towering skyscraper apartments loom over smaller homes, their windows shattered.\n"
+        "Three cars, a blue car, a red car, and a scorched husk, sit in abandoned driveways.\n"
+        "A torn child's backpack lies nearby, and a scorched flag flutters weakly on a mailbox."
     );
     rooms["Suburbs"]->addLookable(
         "blue car",
-        "Its doors hang open; the engine block stripped for parts."
+        "The blue car's doors hang open, and the engine is stripped, jammed, and useless."
     );
     rooms["Suburbs"]->addSearchable(
         "blue car",
-        "Inside the glove box you find a 9mm pistol wrapped in an ID badge: \"Captain Wang, Military Police.\""
+        "A jammed 9mm pistol lies under the seat, wrapped in a cracked MP badge. The firing mechanism is fused solid and completely unusable."
     );
     rooms["Suburbs"]->addLookable(
-        "child’s backpack",
-        "A faded cartoon sticker clings to the corner of its torn fabric."
+        "backpack",
+        "The torn child's backpack is worn, with a faded cartoon sticker on its flap."
     );
     rooms["Suburbs"]->addSearchable(
-        "child’s backpack",
-        "You find a crumpled drawing of a family under a rainbow, signed \"Mei, Age 7.\""
-    );
-    rooms["Suburbs"]->addLookable(
-        "burnt car",
-        "The charred shell pools rubber where its tires melted."
-    );
-    rooms["Suburbs"]->addSearchable(
-        "burnt car",
-        "Sifting ash in the trunk reveals a note: \"We’re out of bullets—defend the children. -Lieutenant Gao.\""
+        "backpack",
+        "Inside is a child's drawing signed \"Mei, Age 7.\" It shows a family under clouds with wires going into their heads."
     );
     rooms["Suburbs"]->addLookable(
         "flag",
-        "The scorched flag’s fabric hides something beneath its folds."
+        "The scorched flag conceals something tucked underneath."
     );
     rooms["Suburbs"]->addSearchable(
         "flag",
-        "You lift the flag and uncover a scrap: \"Evacuate via subway—Tunnel 22. -City Council.\""
+        "Hidden beneath is a handwritten evacuation order directing civilians to the subway tunnels."
     );
 
     // Factory
     ADD_ROOM("Factory",
-        "Inside the Factory, rusted conveyor belts stand still under a cracked “Longxue Enterprises—Manufacturing” sign. A splintered medical crate and slumped mannequins hint at sudden panic."
+        "The factory floor is filled with rusting machinery.\n"
+        "A shattered crate lies beneath a collapsed catwalk, marked with a faded red cross.\n"
+        "Lifeless mannequins stand frozen along the edges of old assembly lines, which are labeled Chemical Division."
     );
     rooms["Factory"]->addLookable(
-        "smashed crate",
-        "A blackened red cross marks its side."
+        "crate",
+        "The smashed crate once held medical gear. Its red cross is barely visible."
     );
     rooms["Factory"]->addSearchable(
-        "smashed crate",
-        "Inside you find an AFAK Medkit."
+        "crate",
+        "You find an AFAK Medkit, but it has been breached and chemically contaminated. It is no longer safe or effective."
     );
     rooms["Factory"]->addLookable(
         "mannequins",
-        "Military fatigues hang loose on lifeless forms; one has a bullet hole."
+        "The mannequins are dressed in shredded hazmat suits. One is riddled with bullets."
     );
     rooms["Factory"]->addSearchable(
         "mannequins",
-        "You discover a 5.56×45mm round taped to a boot: \"Keep moving—don’t stop. -Sergeant Wu.\""
+        "An ammo pouch is taped to a boot, but the bullets are corroded from chemical fumes and moisture."
     );
     rooms["Factory"]->addLookable(
         "assembly lines",
-        "Plaques above read “Chemical Division” in Chinese and Japanese."
+        "The assembly lines bear Kiriko's old division plaque: Chemical Weaponry R and D."
     );
     rooms["Factory"]->addSearchable(
         "assembly lines",
-        "Under a loose bolt you find a lab slip: \"Project: Cobalt-7. Virus incomplete—lockdown initiated. -Dr. Kuroda.\""
+        "A lab slip details a virus breach and lockdown. Nearby gear is degraded beyond recovery."
     );
 
     // Theater
     ADD_ROOM("Theater",
-        "Shredded velvet seats face a stage littered with debris. A rifle case lies open, a shotgun rack stands empty, and a torn curtain reveals scorch marks overhead."
+        "Torn velvet seats face a ruined stage blackened by fire.\n"
+        "A frayed rifle case lies cracked open but empty.\n"
+        "A shotgun rack hangs bare nearby.\n"
+        "Charred scorch marks line the walls, and scattered tickets litter the floor like ash."
     );
     rooms["Theater"]->addLookable(
         "rifle case",
-        "Its lining is frayed and pried apart."
+        "The rifle case has frayed padding and scratches inside. No weapon remains."
     );
     rooms["Theater"]->addSearchable(
         "rifle case",
-        "You read a scratched code inside—but find no weapon."
+        "You discover a scratched numeric code: \"1914.\" The rifle once inside is long gone."
     );
     rooms["Theater"]->addLookable(
         "shotgun rack",
-        "Hooks sway where a shotgun once hung."
+        "The shotgun rack has empty hooks swaying slowly, long looted."
     );
     rooms["Theater"]->addSearchable(
         "shotgun rack",
-        "Someone took the weapon recently."
+        "Dust outlines suggest weapons were taken just days before you arrived."
     );
     rooms["Theater"]->addLookable(
-        "stage curtain",
-        "Torn fabric hangs heavy; scorch marks streak the wood behind it."
+        "scorch marks",
+        "The scorch marks streak across burnt wood and a painted backdrop."
     );
     rooms["Theater"]->addSearchable(
-        "stage curtain",
-        "Peeling the fabric reveals a canceled playbill: \"Tonight’s performance canceled—urgent evacuation. -City Cultural Bureau.\""
+        "scorch marks",
+        "A burnt playbill titled \"The Mirror's War\" reveals the theater was an evacuation point until it was shelled."
     );
     rooms["Theater"]->addLookable(
         "tickets",
-        "Scattered stubs bear the date June 2, 2025."
+        "The tickets are torn and mostly illegible."
     );
     rooms["Theater"]->addSearchable(
         "tickets",
-        "One stub reads: \"Meet at main gate at dawn—plan B.\""
+        "One stub has strange coordinates scribbled in ink."
     );
 
     // Sewer
     ADD_ROOM("Sewer",
-        "The stench of sewage fills damp tunnels. A heavy hatch, piled sandbags, and charcoal graffiti on the walls each speak of past desperation."
+        "The damp sewers reek of decay.\n"
+        "A rusted hatch leads deeper.\n"
+        "Sandbags form a makeshift barricade, and faded graffiti covers the walls."
     );
     rooms["Sewer"]->addLookable(
         "hatch",
-        "Grime coats the metal, hinges bend at odd angles."
+        "The hatch is bent at the hinges, water dripping from its seams."
     );
     rooms["Sewer"]->addSearchable(
         "hatch",
-        "Under it you find a backpack with a flashlight and a note: \"Do not trust patrols without crest. -Scout Li, Unit 7.\""
+        "A backpack contains a flashlight, but the batteries are bloated and leaking acid. It is inoperable."
     );
     rooms["Sewer"]->addLookable(
         "sandbags",
-        "Old bags ring a makeshift barricade."
+        "The sandbags are stacked in haste, leaking dirt."
     );
     rooms["Sewer"]->addSearchable(
         "sandbags",
-        "You uncover a 7.62×39mm magazine tucked behind them."
+        "A magazine is hidden behind, but the bullets have corroded."
     );
     rooms["Sewer"]->addLookable(
         "graffiti",
-        "\"Stay above ground\" scrawled in charcoal on the damp wall."
+        "The graffiti reads: \"STAY ABOVE. THEYRE BELOW.\""
     );
     rooms["Sewer"]->addSearchable(
         "graffiti",
-        "Beneath the charcoal you find: \"Escape hatch to Plaza B—it opens at 0600. -Medic Zhao.\""
+        "A message scrawled in marker notes: \"Escape vent opens at 2:45 AM only.\""
     );
 
     // Zoo
     ADD_ROOM("Zoo",
-        "Empty cages creak in the wind. Rusted feeding troughs lie abandoned and a torn map flutters on a broken post—its markings hint at hidden paths."
+        "The wide open zoo is cage free, with deep pits where animals once roamed.\n"
+        "Rusted feeding troughs sit unused.\n"
+        "A zoo map flaps on a broken pole, and a soaked clipboard dangles from a fence post."
     );
     rooms["Zoo"]->addLookable(
-        "clipboard",
-        "Waterlogged papers top it; the header reads \"Quarantine Perimeter.\""
+        "feeding troughs",
+        "The feeding troughs are cracked and rusted with reddish stains."
     );
     rooms["Zoo"]->addSearchable(
-        "clipboard",
-        "You salvage a page: \"Missing: tiger #12. Zone breached. Evacuation revoked. -Dr. Yang.\""
+        "feeding troughs",
+        "A sedative vial and syringe are found, but the liquid has crystallized, making it useless."
     );
     rooms["Zoo"]->addLookable(
-        "feeding trough",
-        "Stained metal shows no sign of recent feeding."
+        "pits",
+        "The pits are filled with bones and twisted restraints."
     );
     rooms["Zoo"]->addSearchable(
-        "feeding trough",
-        "At the bottom you find a vial labeled “Sedative. Do not ingest.” and a smudged paw print."
+        "pits",
+        "A journal scrap warns: \"Subjects escaped. Dont enter lion zone.\""
     );
     rooms["Zoo"]->addLookable(
         "zoo map",
-        "Colored zones are crossed out, and \"Lab Entry\" circled in red."
+        "The zoo map has zones marked out. \"Lab Entry\" is circled in red."
     );
     rooms["Zoo"]->addSearchable(
         "zoo map",
-        "Peeling it off reveals: \"Secret tunnel under lion’s den—leads north. -Ranger Wu.\""
+        "A note on the back reveals: \"Secret tunnel beneath lion den.\""
+    );
+    rooms["Zoo"]->addLookable(
+        "clipboard",
+        "The clipboard is soggy but legible."
+    );
+    rooms["Zoo"]->addSearchable(
+        "clipboard",
+        "A report says: \"Tiger missing. Evac revoked. Quarantine failed.\""
     );
 
     // Subway Station
     ADD_ROOM("Subway Station",
-        "Flickering emergency lights reveal bullet-riddled posters and a rusted platform sign—each piece marking a frantic last train."
+        "The subway station flickers under dim lights.\n"
+        "A battered bulletin board, a torn subway schedule, and a grimy platform sign make up the scene."
     );
     rooms["Subway Station"]->addLookable(
         "bulletin board",
-        "A torn schedule hangs by one nail."
+        "The bulletin board is covered in scribbled ink and blood."
     );
     rooms["Subway Station"]->addSearchable(
         "bulletin board",
-        "Behind it you discover a hand-drawn map: \"Safe route to west exit.\""
+        "A handmade map showing a safe route is taped to the underside."
     );
     rooms["Subway Station"]->addLookable(
         "subway schedule",
-        "Bled ink makes out: \"Last stop: Walled City. Next train canceled.\""
+        "The subway schedule is faded and water damaged."
     );
     rooms["Subway Station"]->addSearchable(
         "subway schedule",
-        "You find a pocketknife taped to the board, initials \"G.W.\" carved into the handle."
+        "A rusty pocketknife is taped behind the board. Its blade is snapped and rusted shut."
     );
     rooms["Subway Station"]->addLookable(
         "platform sign",
-        "The sign overhead reads “Platform 3,” grime clinging to the edges."
+        "The platform sign reads \"PLATFORM 3\" beneath layers of dirt."
     );
     rooms["Subway Station"]->addSearchable(
         "platform sign",
-        "Wiping the grime reveals: \"Meet agent at platform shift—11:00 PM. -Source Xi.\""
+        "A message scrawled behind it reads: \"Meet agent at platform shift - 11:00 PM. Source Xi.\""
     );
 
     // Lab Underground Entrance
     ADD_ROOM("Lab Underground Entrance",
-        "A heavy steel door pulses with bioluminescent veins through slime and rust. Its glow promises something buried within."
+        "A heavy steel door pulses with bioluminescent veins through slime and rust.\n"
+        "Its glow promises something buried within."
     );
     rooms["Lab Underground Entrance"]->addLookable(
         "bright door",
-        "Veins of sickly green light flicker across its surface."
+        "The bright door glows faintly with green pulses."
     );
     rooms["Lab Underground Entrance"]->addSearchable(
         "bright door",
-        "Prying at a seam you uncover an Overwrite Card wedged in the sludge."
+        "Prying at a seam you uncover an overwrite card wedged in the sludge.\n"
+        "This is the same card from the dead body in the Back Streets."
     );
 
     // Lab North Entrance
     ADD_ROOM("Lab North Entrance",
-        "A fortified barricade blocks your path. Bullet holes and empty shell casings speak of a desperate last stand."
+        "A barricade of scrap and shell casings marks an old skirmish site.\n"
+        "Confidential lab reports litter the area, scattered by wind and time."
     );
     rooms["Lab North Entrance"]->addLookable(
-        "lab report",
-        "Stained pages titled \"Project Onryō: Neural Digitization Test\" lie scattered."
+        "lab reports",
+        "The lab report is titled \"PROJECT ONRYO\" and bears the Kiriko seal."
     );
     rooms["Lab North Entrance"]->addSearchable(
-        "lab report",
-        "Inside an envelope stamped “CONFIDENTIAL” you find a Kiriko Lab Keycard."
+        "lab reports",
+        "A second lab keycard is wedged inside, but it is bent and unreadable by standard readers."
     );
     rooms["Lab North Entrance"]->addLookable(
         "barricade",
-        "Sandbags and scrap metal reinforce rusted chains."
+        "The barricade is built from rusted scrap and sandbags."
     );
     rooms["Lab North Entrance"]->addSearchable(
         "barricade",
-        "Behind a plank you discover two 9mm rounds taped to a beam."
+        "A box of 9mm rounds is taped underneath, but moisture has ruined the powder inside."
     );
     rooms["Lab North Entrance"]->addLookable(
         "shell casings",
-        "Hundreds of spent casings crunch underfoot."
+        "The shell casings bear Kiriko's mark."
     );
     rooms["Lab North Entrance"]->addSearchable(
         "shell casings",
-        "One casing bears the stamp “Kiriko Corp.” —proof of their militia."
+        "You find the shattered lens from a Kiriko PMC helmet, no tech left intact."
     );
 
     // The Lab
     ADD_ROOM("The Lab",
-        "White tiles crack beneath shattered test tubes and a flickering “Experiment Zone” sign. Broken cameras dangle overhead."
+        "The sterile lab interior is covered in shattered test tubes, cracked tiles, and a blinking digital console.\n"
+        "Security cameras hang limp and broken."
     );
     rooms["The Lab"]->addLookable(
         "digital console",
-        "Its screen flashes: \"Containment Failure—Lockdown Engaged.\""
+        "The digital console flashes warnings: \"System Lockdown. Power Critical.\""
     );
     rooms["The Lab"]->addSearchable(
         "digital console",
-        "You hack it and retrieve a flash drive labeled \"Project Omega—Research Data.\""
+        "A flash drive labeled \"PROJECT OMEGA\" is found, but it is encrypted with unknown tech."
     );
     rooms["The Lab"]->addLookable(
         "test tubes",
-        "Glowing green liquid pulses faintly in the shattered glass."
+        "The test tubes glow faintly, some cracked, others bubbling."
     );
     rooms["The Lab"]->addSearchable(
         "test tubes",
-        "You collect an intact tube; its fluid may be a potent healer."
+        "A sealed vial of healing fluid is intact, but pressure has compromised its contents. Not safe to inject."
     );
     rooms["The Lab"]->addLookable(
         "security cameras",
-        "Cracked lenses point down at the chaos below."
+        "The security cameras hang by threads, sparking."
     );
     rooms["The Lab"]->addSearchable(
         "security cameras",
-        "You find a log entry: \"02:17—Unknown containment breach. -Technician Huang.\""
+        "A log plays: \"Unidentified breach - Level B compromised.\""
     );
 
     // Lab Courtyard
     ADD_ROOM("Lab Courtyard",
-        "Overgrown weeds crack through the pavement. A rusted barrel smolders with chemical ash, and footprints weave through the ruins."
+        "The lab courtyard is overgrown with weeds and tracked with muddy footprints.\n"
+        "A smoldering barrel emits a thin wisp of smoke, and a weathered journal is half-buried nearby."
     );
     rooms["Lab Courtyard"]->addLookable(
         "weathered journal",
-        "Coffee-stained pages tremble with faint handwriting."
+        "The journal is damp and warped."
     );
     rooms["Lab Courtyard"]->addSearchable(
         "weathered journal",
-        "You read: \"Day 12: Soldiers keep disappearing. We fear something else was unleashed. -Dr. Chen.\""
+        "Its pages mention horrors unleashed in the sub labs."
     );
     rooms["Lab Courtyard"]->addLookable(
         "smoldering barrel",
-        "A weak fire flickers inside a rusted drum."
+        "The barrel glows faintly."
     );
     rooms["Lab Courtyard"]->addSearchable(
         "smoldering barrel",
-        "Under the lid is a half-empty field canteen labeled ‘Expires 04/2025.’"
+        "A canteen rests inside, half full, but it smells like chemicals. Undrinkable."
     );
     rooms["Lab Courtyard"]->addLookable(
         "weeds",
-        "Thick stalks bend under muddy footprints."
+        "The weeds are bent and flattened."
     );
     rooms["Lab Courtyard"]->addSearchable(
         "weeds",
-        "Pulling them aside reveals a collapsed ventilation shaft below."
+        "Beneath them lies a collapsed ventilation shaft leading downward."
     );
+
 }
 void WorldManager::connectRooms() {
     // Passages use the destination’s name string as the “direction” label

@@ -527,114 +527,127 @@ bool CombatManager::promptPlayerAction(
     PlayerCombatant& player,
     std::vector<std::shared_ptr<Enemy>>& enemies
 ) {
-    // Clear the "justTookCover" flag unless we explicitly go into the Take Cover branch below
+    // Clear the "justTookCover" flag unless we explicitly go into Take Cover
     player.justTookCover = false;
 
-    std::cout << "\nChoose an action:\n";
-    std::cout << " 1) Move Closer   2) Move Further   3) Take Cover\n";
-    std::cout << " 4) Shoot         5) Reload         6) Flee\n";
-    std::cout << "Command> ";
+    while (true) {
+        std::cout << "\nChoose an action:\n"
+                  << " 1) Move Closer   2) Move Further   3) Take Cover\n"
+                  << " 4) Shoot         5) Reload         6) Flee\n"
+                  << "Command> ";
 
-    std::string cmd;
-    std::getline(std::cin, cmd);
+        std::string cmd;
+        std::getline(std::cin, cmd);
 
-    if (cmd == "1" || cmd == "move closer") {
-        bool wasInCover = player.isInCover();
-        if (currentDistance != Distance::Close) {
-            currentDistance = static_cast<Distance>(static_cast<int>(currentDistance) - 1);
-            player.distance = currentDistance;
-            if (wasInCover) {
-                player.breakCover();
-                std::cout << "You move closer and drop out of cover. You are now Exposed.\n";
+        // 1) Move Closer
+        if (cmd == "1" || cmd == "move closer") {
+            bool wasInCover = player.isInCover();
+            if (currentDistance != Distance::Close) {
+                currentDistance = static_cast<Distance>(static_cast<int>(currentDistance) - 1);
+                player.distance = currentDistance;
+                if (wasInCover) {
+                    player.breakCover();
+                    std::cout << "You move closer and drop out of cover. You are now Exposed.\n";
+                } else {
+                    std::cout << "You move closer.\n";
+                }
             } else {
-                std::cout << "You move closer.\n";
+                std::cout << "You are already at the closest range.\n";
             }
-        } else {
-            std::cout << "You are already at the closest range.\n";
-        }
-        return true;
-    }
-    if (cmd == "2" || cmd == "move further") {
-        bool wasInCover = player.isInCover();
-        if (currentDistance != Distance::Far) {
-            currentDistance = static_cast<Distance>(static_cast<int>(currentDistance) + 1);
-            player.distance = currentDistance;
-            if (wasInCover) {
-                player.breakCover();
-                std::cout << "You move farther and drop out of cover. You are now Exposed.\n";
-            } else {
-                std::cout << "You move farther.\n";
-            }
-        } else {
-            std::cout << "You are already at the farthest range.\n";
-        }
-        return true;
-    }
-    if (cmd == "3" || cmd == "take cover") {
-        if (!player.isInCover()) {
-            player.takeCover();
-            player.justTookCover = true;
-            std::cout << "You run to cover. You are now Behind Cover.\n";
-        } else {
-            std::cout << "You are already behind cover.\n";
-        }
-        return true;
-    }
-    if (cmd.rfind("shoot", 0) == 0) {
-        std::istringstream iss(cmd);
-        std::vector<std::string> tokens;
-        std::string tok;
-        while (iss >> tok) {
-            tokens.push_back(tok);
-        }
-
-        int idx = 0;
-        std::string partStr;
-
-        if (tokens.size() == 2) {
-            partStr = tokens[1];
-            if (enemies.size() > 1) {
-                std::cout << "Multiple enemies present—use: shoot <enemyIndex> <bodyPart>\n";
-                return true;
-            }
-        } else if (tokens.size() == 3) {
-            try {
-                idx = std::stoi(tokens[1]);
-            } catch (...) {
-                std::cout << "Invalid index.\n";
-                return true;
-            }
-            partStr = tokens[2];
-            if (idx < 0 || idx >= static_cast<int>(enemies.size()) || enemies[idx]->isDead()) {
-                std::cout << "Invalid enemy index.\n";
-                return true;
-            }
-        } else {
-            std::cout << "Usage: shoot <part>    OR    shoot <enemyIndex> <part>\n";
             return true;
         }
-
-        BodyPartType targetPart = parseBodyPart(partStr);
-        auto enemyPtr = enemies[idx];
-        if (!player.shootAt(enemyPtr, targetPart)) {
-            std::cout << "Unable to shoot (no ammo or reloading).\n";
+        // 2) Move Further
+        if (cmd == "2" || cmd == "move further") {
+            bool wasInCover = player.isInCover();
+            if (currentDistance != Distance::Far) {
+                currentDistance = static_cast<Distance>(static_cast<int>(currentDistance) + 1);
+                player.distance = currentDistance;
+                if (wasInCover) {
+                    player.breakCover();
+                    std::cout << "You move farther and drop out of cover. You are now Exposed.\n";
+                } else {
+                    std::cout << "You move farther.\n";
+                }
+            } else {
+                std::cout << "You are already at the farthest range.\n";
+            }
+            return true;
         }
-        return true;
-    }
-    if (cmd == "5" || cmd == "reload") {
-        player.reloadWeapon();
-        return true;
-    }
-    if (cmd == "6" || cmd == "flee") {
-        if (player.attemptFlee()) {
-            return false; // exit combat loop (you fled)
+        // 3) Take Cover
+        if (cmd == "3" || cmd == "take cover") {
+            if (!player.isInCover()) {
+                player.takeCover();
+                player.justTookCover = true;
+                std::cout << "You run to cover. You are now Behind Cover.\n";
+            } else {
+                std::cout << "You are already behind cover.\n";
+            }
+            return true;
         }
-        return true;
-    }
+        // 4) Shoot
+        if (cmd.rfind("shoot", 0) == 0) {
+            std::istringstream iss(cmd);
+            std::vector<std::string> tokens;
+            std::string tok;
+            while (iss >> tok) {
+                tokens.push_back(tok);
+            }
 
-    std::cout << "Unknown command. Try again.\n";
-    return true;
+            int idx = 0;
+            std::string partStr;
+
+            // shoot <part>
+            if (tokens.size() == 2) {
+                partStr = tokens[1];
+                if (enemies.size() > 1) {
+                    std::cout << "Multiple enemies present—use: shoot <enemyIndex> <bodyPart>\n";
+                    continue;  // reprompt
+                }
+            }
+            // shoot <index> <part>
+            else if (tokens.size() == 3) {
+                try {
+                    idx = std::stoi(tokens[1]);
+                } catch (...) {
+                    std::cout << "Invalid enemy index.\n";
+                    continue;
+                }
+                partStr = tokens[2];
+                if (idx < 0 || idx >= static_cast<int>(enemies.size()) || enemies[idx]->isDead()) {
+                    std::cout << "Invalid enemy index.\n";
+                    continue;
+                }
+            }
+            else {
+                std::cout << "Usage: shoot <part>    OR    shoot <enemyIndex> <part>\n";
+                continue;
+            }
+
+            BodyPartType targetPart = parseBodyPart(partStr);
+            auto enemyPtr = enemies[idx];
+            if (!player.shootAt(enemyPtr, targetPart)) {
+                std::cout << "Unable to shoot (no ammo or reloading).\n";
+            }
+            return true;
+        }
+        // 5) Reload
+        if (cmd == "5" || cmd == "reload") {
+            player.reloadWeapon();
+            return true;
+        }
+        // 6) Flee
+        if (cmd == "6" || cmd == "flee") {
+            if (player.attemptFlee()) {
+                return false;  // you fled: exit combat loop
+            }
+            return true;      // failed to flee, still your enemies' turn
+        }
+
+        // Invalid input — reprompt without enemy acting
+        std::cout << "Unknown command. Try again.\n";
+    }
 }
+
 
 BodyPartType CombatManager::parseBodyPart(const std::string& s) const {
     std::string u = s;

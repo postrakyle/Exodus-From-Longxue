@@ -28,10 +28,15 @@ private:
     std::vector<std::string> tokenizeString(const std::string& input);
     std::string makeLowercase(std::string input);
 
-    std::map<std::string, std::shared_ptr<Room>> roomMap;
+      std::map<std::string, std::shared_ptr<Room>> roomMap;
     Player* player = nullptr;
     bool gameOver = false;
-    bool firstArrivalToZoo = true;
+
+    // one-time arrival flags
+    bool firstArrivalToZoo            = true;
+    bool firstArrivalToLabUnderground = true;
+    bool firstArrivalToLabNorth       = true;
+    bool firstArrivalToLabCourtyard   = true;
 };
 
 #endif // ZOORKENGINE_H
